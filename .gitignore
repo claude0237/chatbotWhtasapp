@@ -1,0 +1,134 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+!frontend/src/lib/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing / Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.hypothesis/
+coverage.xml
+*.cover
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Linting
+.ruff_cache/
+
+# ── FastAPI / Backend ─────────────────────────────────────────────────────────
+*.log
+logs/
+backend/err.txt
+backend/static/uploads/
+
+# ── Database ──────────────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+alembic/versions/*.pyc
+
+# ── Node / Next.js Frontend ───────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.next/
+out/
+dist/
+dist-ssr/
+frontend/.next/
+frontend/out/
+
+# ── Environment / Secrets ─────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.production
+!.env.example
+!.env.prod.example
+*.key
+*.pem
+*.crt
+secrets/
+credentials/
+
+# ── Docker (future) ───────────────────────────────────────────────────────────
+docker-compose.override.yml
+docker-compose.local.yml
+.dockerignore
+
+# ── ML / AI / Data ────────────────────────────────────────────────────────────
+data/
+ml_models/
+*.pkl
+*.h5
+*.pt
+*.pth
+*.onnx
+*.joblib
+*.bin
+*.safetensors
+__pycache__/
+
+# ── Jupyter ───────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── IDE / Editor ──────────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+Thumbs.db
+.DS_Store
+Desktop.ini
+ehthumbs.db
+
+# ── Misc scripts / temp ───────────────────────────────────────────────────────
+backend/cleanup_soft_deleted.py
+backend/create_test_user.py
+*.tmp
+*.bak

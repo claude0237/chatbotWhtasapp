@@ -1,0 +1,18 @@
+{
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn",
+    "style": "warn",
+    "complexity": "warn",
+    "bugrisk": "error"
+  },
+  "ignore": [
+    "node_modules",
+    ".next",
+    "out",
+    "dist",
+    "build"
+  ],
+  "target": "ES2022"
+}
