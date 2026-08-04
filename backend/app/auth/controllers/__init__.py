@@ -71,8 +71,16 @@ async def logout():
 
 
 @router.get("/me")
-async def get_current_user(current_user: User = Depends(get_current_active_user)):
+async def get_current_user(current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
     """Get current authenticated user"""
+    from sqlalchemy import select
+    from app.companies.models import Company
+    
+    company_name = None
+    if current_user.company_id:
+        result = await db.execute(select(Company.name).where(Company.id == current_user.company_id))
+        company_name = result.scalar_one_or_none()
+    
     return {
         "id": str(current_user.id),
         "email": current_user.email,
@@ -80,5 +88,6 @@ async def get_current_user(current_user: User = Depends(get_current_active_user)
         "last_name": current_user.last_name,
         "role": current_user.role.value,
         "company_id": str(current_user.company_id),
+        "company_name": company_name,
         "is_active": current_user.is_active
     }

@@ -72,21 +72,23 @@ dist/
 dist-ssr/
 frontend/.next/
 frontend/out/
+frontend/node_modules/
+frontend/tsconfig.tsbuildinfo
 
 # ── Environment / Secrets ─────────────────────────────────────────────────────
-.env
-.env.local
-.env.*.local
-.env.production
-!.env.example
-!.env.prod.example
 *.key
 *.pem
 *.crt
 secrets/
 credentials/
+backend/.env
+frontend/.env.local
+.env
+.env.local
+.env.prod
+.env.production
 
-# ── Docker (future) ───────────────────────────────────────────────────────────
+# ── Docker ───────────────────────────────────────────────────────────────────
 docker-compose.override.yml
 docker-compose.local.yml
 .dockerignore
@@ -102,7 +104,6 @@ ml_models/
 *.joblib
 *.bin
 *.safetensors
-__pycache__/
 
 # ── Jupyter ───────────────────────────────────────────────────────────────────
 .ipynb_checkpoints/
@@ -130,5 +131,7 @@ ehthumbs.db
 # ── Misc scripts / temp ───────────────────────────────────────────────────────
 backend/cleanup_soft_deleted.py
 backend/create_test_user.py
+backend/init_db.py
+backend/create_superadmin.py
 *.tmp
 *.bak

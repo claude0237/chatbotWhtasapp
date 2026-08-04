@@ -73,7 +73,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-gray-700">
           {sidebarOpen && (
-            <span className="font-bold text-lg text-green-400">💬 ChatBot SaaS</span>
+            <span className="font-bold text-lg text-green-400">💬 {user?.company_name || 'ChatBot SaaS'}</span>
           )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}

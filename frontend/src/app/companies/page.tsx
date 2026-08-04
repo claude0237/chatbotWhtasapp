@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../lib/api';
 import AppLayout from '../../components/AppLayout';
@@ -27,6 +28,7 @@ export default function CompaniesPage() {
   const [editing, setEditing] = useState<Company | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<Company | null>(null);
   const { user } = useAuth();
 
   useEffect(() => { fetchCompanies(); }, []);
@@ -78,13 +80,21 @@ export default function CompaniesPage() {
   };
 
   const handleDelete = async (c: Company) => {
-    if (!confirm(`Supprimer "${c.name}" ? Cette action est irréversible.`)) return;
+    console.log('handleDelete called for company:', c);
+    setConfirmDelete(c);
+    console.log('confirmDelete state set to:', c);
+  };
+
+  const confirmDeleteAction = async () => {
+    if (!confirmDelete) return;
     try {
-      await api.delete(`/companies/${c.id}`);
+      await api.delete(`/companies/${confirmDelete.id}`);
       setSuccess('Entreprise supprimée.');
+      setConfirmDelete(null);
       fetchCompanies();
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Erreur lors de la suppression');
+      setConfirmDelete(null);
     }
   };
 
@@ -312,6 +322,20 @@ export default function CompaniesPage() {
             </form>
           </div>
         </div>
+      )}
+      {/* Confirm Delete Modal */}
+      {confirmDelete && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
+            <h2 className="text-lg font-bold text-gray-900 mb-2">🗑️ Confirmer la suppression</h2>
+            <p className="text-sm text-gray-600 mb-4">Supprimer <strong>{confirmDelete.name}</strong> ? Cette action est irréversible.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmDelete(null)} className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 text-sm font-medium">Annuler</button>
+              <button onClick={confirmDeleteAction} className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 text-sm font-medium">Supprimer</button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </AppLayout>
   );

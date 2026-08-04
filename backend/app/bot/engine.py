@@ -151,14 +151,23 @@ class BotEngine:
         if state.current_step >= len(steps):
             # Scenario finished
             await self.state_repo.delete(state)
+            # For choice/condition steps, use the branch-specific reply first,
+            # then optionally append the generic end_message.
+            resolved = self._resolve_reply(current_step, normalized, step_type)
             end_msg = current_step.get("end_message") or current_step.get("closing")
+            if resolved and end_msg:
+                raw_reply = self._interpolate(resolved, state.collected_data)
+                resolved_reply = await self._resolve_catalogue_vars(raw_reply, state.company_id)
+                raw_end = self._interpolate(end_msg, state.collected_data)
+                resolved_end = await self._resolve_catalogue_vars(raw_end, state.company_id)
+                return f"{resolved_reply}\n\n{resolved_end}"
+            if resolved:
+                raw = self._interpolate(resolved, state.collected_data)
+                return await self._resolve_catalogue_vars(raw, state.company_id)
             if end_msg:
                 raw = self._interpolate(end_msg, state.collected_data)
                 return await self._resolve_catalogue_vars(raw, state.company_id)
-            # Return the resolved choice/condition reply as closing message
-            resolved = self._resolve_reply(current_step, normalized, step_type) or "✅ Merci !"
-            raw = self._interpolate(resolved, state.collected_data)
-            return await self._resolve_catalogue_vars(raw, state.company_id)
+            return "✅ Merci !"
 
         next_step = steps[state.current_step]
         next_message = await self._resolve_step_message(next_step, state.collected_data, state.company_id)

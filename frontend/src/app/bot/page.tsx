@@ -27,6 +27,27 @@ interface BotKeyword {
 interface SimMessage { role: 'user' | 'bot'; text: string; }
 
 type StepType = 'text' | 'choice' | 'condition' | 'handoff' | 'catalogue';
+
+const TIMEZONES = [
+  { value: 'Africa/Douala', label: 'Afrique Centrale (Douala, Yaoundé) UTC+1' },
+  { value: 'Africa/Lagos', label: 'Afrique de l\'Ouest (Lagos) UTC+1' },
+  { value: 'Africa/Casablanca', label: 'Maroc (Casablanca) UTC+1' },
+  { value: 'Africa/Tunis', label: 'Tunisie (Tunis) UTC+1' },
+  { value: 'Africa/Abidjan', label: 'Côte d\'Ivoire (Abidjan) UTC+0' },
+  { value: 'Africa/Accra', label: 'Ghana (Accra) UTC+0' },
+  { value: 'Africa/Nairobi', label: 'Afrique de l\'Est (Nairobi) UTC+3' },
+  { value: 'Africa/Johannesburg', label: 'Afrique du Sud (Johannesburg) UTC+2' },
+  { value: 'Europe/Paris', label: 'France (Paris) UTC+1 / UTC+2' },
+  { value: 'Europe/Brussels', label: 'Belgique (Bruxelles) UTC+1 / UTC+2' },
+  { value: 'Europe/Zurich', label: 'Suisse (Zurich) UTC+1 / UTC+2' },
+  { value: 'Europe/London', label: 'Royaume-Uni (Londres) UTC+0 / UTC+1' },
+  { value: 'America/Montreal', label: 'Canada (Montréal) UTC-5 / UTC-4' },
+  { value: 'America/New_York', label: 'États-Unis (New York) UTC-5 / UTC-4' },
+  { value: 'America/Los_Angeles', label: 'États-Unis (Los Angeles) UTC-8 / UTC-7' },
+  { value: 'Asia/Dubai', label: 'Émirats Arabes Unis (Dubaï) UTC+4' },
+  { value: 'Asia/Singapore', label: 'Singapour UTC+8' },
+  { value: 'UTC', label: 'UTC' },
+];
 interface ChoiceEntry { key: string; reply: string; }
 interface ConditionEntry { if: 'equals' | 'contains' | 'starts_with' | 'not_equals' | 'default'; value: string; reply: string; }
 interface StepDraft {
@@ -57,7 +78,7 @@ export default function BotPage() {
   const [editingScenario,   setEditingScenario]   = useState<BotScenario | null>(null);
   const [editingKeyword,    setEditingKeyword]    = useState<BotKeyword | null>(null);
 
-  const [configForm,   setConfigForm]   = useState({ name: '', welcome_message: '', away_message: '', closing_message: '', unknown_message: '', language: 'fr', timezone: 'Europe/Paris', followup_timeout_minutes: 60, followup_max_retries: 3, business_hours: null as Record<string, {open: string; close: string} | null> | null });
+  const [configForm,   setConfigForm]   = useState({ name: '', welcome_message: '', away_message: '', closing_message: '', unknown_message: '', language: 'fr', timezone: 'Africa/Douala', followup_timeout_minutes: 60, followup_max_retries: 3, business_hours: null as Record<string, {open: string; close: string} | null> | null });
   const [scenarioForm, setScenarioForm] = useState({ name: '', trigger_keyword: '', is_active: true });
   const [scenarioSteps, setScenarioSteps] = useState<StepDraft[]>([{ ...BLANK_STEP }]);
   const [keywordForm,  setKeywordForm]  = useState({ keyword: '', response: '', category: '' });
@@ -421,7 +442,7 @@ export default function BotPage() {
               </button>
             )}
             {!config && (
-              <button onClick={() => { setConfigForm({ name: '', welcome_message: 'Bonjour ! Comment puis-je vous aider ?', away_message: '', closing_message: 'Merci, à bientôt !', unknown_message: 'Je ne comprends pas. Souhaitez-vous parler à un agent ?', language: 'fr', timezone: 'Europe/Paris', followup_timeout_minutes: 60, followup_max_retries: 3, business_hours: null }); setShowConfigModal(true); }}
+              <button onClick={() => { setConfigForm({ name: '', welcome_message: 'Bonjour ! Comment puis-je vous aider ?', away_message: '', closing_message: 'Merci, à bientôt !', unknown_message: 'Je ne comprends pas. Souhaitez-vous parler à un agent ?', language: 'fr', timezone: 'Africa/Douala', followup_timeout_minutes: 60, followup_max_retries: 3, business_hours: null }); setShowConfigModal(true); }}
                 className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-medium">
                 + Créer le bot
               </button>
@@ -663,7 +684,12 @@ export default function BotPage() {
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Langue</label>
                   <input value={configForm.language} onChange={e => setConfigForm({...configForm, language: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="fr" /></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Fuseau horaire</label>
-                  <input value={configForm.timezone} onChange={e => setConfigForm({...configForm, timezone: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Europe/Paris" /></div>
+                  <select value={configForm.timezone} onChange={e => setConfigForm({...configForm, timezone: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-green-500">
+                    <option value="" disabled>Choisir un fuseau horaire</option>
+                    {TIMEZONES.map(tz => (
+                      <option key={tz.value} value={tz.value}>{tz.label}</option>
+                    ))}
+                  </select></div>
               </div>
               <div className="border-t pt-3 mt-1">
                 <p className="text-xs font-semibold text-gray-500 mb-2">🕐 Horaires d'ouverture <span className="font-normal text-gray-400">(le bot envoie le message d'absence hors de ces horaires)</span></p>

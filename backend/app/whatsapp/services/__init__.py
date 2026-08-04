@@ -319,12 +319,24 @@ class WhatsAppService:
                                 # Outside business hours → send away message
                                 bot_reply = interpolate_message(_bot_cfg.away_message, _bot_cfg.timezone if _bot_cfg else "UTC")
                             else:
-                                bot_engine = BotEngine(self.db)
-                                bot_reply = await bot_engine.process(
-                                    company_id=company_id,
-                                    phone_number=phone_from,
-                                    message_text=msg_text,
-                                )
+                                try:
+                                    bot_engine = BotEngine(self.db)
+                                    bot_reply = await bot_engine.process(
+                                        company_id=company_id,
+                                        phone_number=phone_from,
+                                        message_text=msg_text,
+                                    )
+                                except Exception as e:
+                                    _wlog.error(
+                                        f"BotEngine.process crashed for company {company_id}, "
+                                        f"phone {phone_from}: {e}",
+                                        exc_info=True,
+                                    )
+                                    bot_reply = (
+                                        _bot_cfg.unknown_message
+                                        if _bot_cfg and _bot_cfg.unknown_message
+                                        else "Désolé, une erreur est survenue. Un conseiller va vous répondre sous peu."
+                                    )
 
                         # Detect handoff signal from bot engine
                         is_handoff = bool(bot_reply and bot_reply.startswith(HANDOFF_PREFIX))

@@ -26,6 +26,103 @@ interface WebhookInfo {
   events_to_subscribe: string[];
 }
 
+const META_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID || '';
+const META_CONFIG_ID = process.env.NEXT_PUBLIC_META_CONFIG_ID || META_APP_ID;
+
+function EmbeddedSignupButton({
+  onSuccess,
+  onError,
+}: {
+  onSuccess: (data: any) => void;
+  onError: (msg: string) => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [sdkReady, setSdkReady] = useState(false);
+
+  useEffect(() => {
+    if ((window as any).FB) { setSdkReady(true); return; }
+    const script = document.createElement('script');
+    script.src = 'https://connect.facebook.net/fr_FR/sdk.js';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      (window as any).FB.init({ appId: META_APP_ID, autoLogAppEvents: true, xfbml: true, version: 'v19.0' });
+      setSdkReady(true);
+    };
+    document.body.appendChild(script);
+  }, []);
+
+  const handleClick = () => {
+    if (!(window as any).FB) { onError('SDK Meta non chargé, rechargez la page.'); return; }
+    if (window.location.protocol !== 'https:') {
+      onError('FB.login requiert HTTPS. Accédez à l\'application via l\'URL Cloudflare (https://xxx.trycloudflare.com) et non via http://localhost.');
+      return;
+    }
+    setLoading(true);
+    console.log('Starting FB.login with config_id:', META_CONFIG_ID);
+    (window as any).FB.login(
+      (response: any) => {
+        console.log('FB.login response:', response);
+        if (response.authResponse?.code) {
+          console.log('Code received, sending to backend');
+          api.post('/whatsapp/embedded-signup', { code: response.authResponse.code })
+            .then((res) => { onSuccess(res.data); })
+            .catch((err: any) => { onError(err.response?.data?.detail || 'Erreur connexion WhatsApp'); })
+            .finally(() => { setLoading(false); });
+        } else {
+          console.log('No code in response, error:', response);
+          onError('Connexion annulée ou refusée par Meta.');
+          setLoading(false);
+        }
+      },
+      {
+        config_id: META_CONFIG_ID,
+        response_type: 'code',
+        override_default_response_type: true,
+        extras: { setup: {}, featureType: '', sessionInfoVersion: '3' },
+      }
+    );
+  };
+
+  if (!META_APP_ID) return (
+    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-700">
+      ⚠️ <strong>NEXT_PUBLIC_META_APP_ID</strong> non défini dans <code>frontend/.env.local</code> — le bouton Embedded Signup est désactivé.
+    </div>
+  );
+
+  return (
+    <div className="bg-white rounded-xl border-2 border-blue-200 p-6">
+      <div className="flex items-start gap-3 mb-4">
+        <span className="text-3xl">🔵</span>
+        <div>
+          <h2 className="text-base font-semibold text-gray-900">Connexion via Meta <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full ml-1">Recommandé</span></h2>
+          <p className="text-xs text-gray-500 mt-1">
+            Connectez votre compte WhatsApp Business en un clic. Meta vous guidera pour autoriser l'accès — aucune copie manuelle de token nécessaire.
+          </p>
+        </div>
+      </div>
+      <button
+        onClick={handleClick}
+        disabled={loading || !sdkReady}
+        className="w-full flex items-center justify-center gap-3 bg-[#1877F2] hover:bg-[#0e6ae4] text-white py-3 rounded-xl text-sm font-semibold disabled:opacity-50 transition-colors"
+      >
+        {loading ? (
+          <span>Connexion en cours…</span>
+        ) : (
+          <>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            Connecter avec Facebook / Meta
+          </>
+        )}
+      </button>
+      <p className="text-xs text-center text-gray-400 mt-3">
+        Un popup Meta s'ouvrira pour autoriser l'accès à votre compte WhatsApp Business.
+      </p>
+    </div>
+  );
+}
+
+
 function SuperAdminWebhookPanel() {
   const [webhookInfo, setWebhookInfo] = useState<WebhookInfo | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -268,9 +365,11 @@ export default function WhatsAppPage() {
 
         {/* ── CONNEXION ── */}
         {activeTab === 'connexion' && (
-          <div className="max-w-xl">
+          <div className="max-w-xl space-y-6">
+
+            {/* Statut connexion actuelle */}
             {credentials?.configured && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
                 <span className="text-2xl">✅</span>
                 <div>
                   <p className="font-semibold text-green-800 text-sm">WhatsApp connecté</p>
@@ -281,50 +380,53 @@ export default function WhatsAppPage() {
               </div>
             )}
 
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">{credentials?.configured ? '✏️ Modifier la connexion' : '🔌 Connecter votre WhatsApp Business'}</h2>
-              <p className="text-xs text-gray-500 mb-5">
-                Ces informations vous sont fournies par votre administrateur de plateforme après création de votre compte WhatsApp Business sur <a href="https://business.facebook.com" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">business.facebook.com</a>.
-              </p>
+            {/* ── Option 1 : Embedded Signup (recommandé) ── */}
+            <EmbeddedSignupButton
+              onSuccess={(data) => {
+                setSuccess(`WhatsApp connecté ! Numéro : ${data.display_phone_number || data.phone_number_id}`);
+                fetchCredentials();
+              }}
+              onError={(msg) => setError(msg)}
+            />
 
+            {/* ── Option 2 : Saisie manuelle ── */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-base font-semibold text-gray-900 mb-1">✏️ Saisie manuelle</h2>
+              <p className="text-xs text-gray-500 mb-5">
+                Si vous avez déjà votre <strong>Phone Number ID</strong> et votre <strong>Access Token permanent</strong>, entrez-les directement.
+              </p>
               <form onSubmit={saveCredentials} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number ID <span className="text-red-500">*</span></label>
                   <input required value={credForm.phone_number_id}
                     onChange={e => setCredForm({...credForm, phone_number_id: e.target.value})}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-green-500"
-                    placeholder="123456789012345" />
-                  <p className="text-xs text-gray-400 mt-1">Identifiant unique du numéro dans Meta.</p>
+                    placeholder="122970883552303" />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Access Token (Permanent) <span className="text-red-500">*</span></label>
                   <input required type="password" value={credForm.access_token}
                     onChange={e => setCredForm({...credForm, access_token: e.target.value})}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-green-500"
                     placeholder="EAAxxxxxxxxx..." />
-                  <p className="text-xs text-gray-400 mt-1">Générez un token permanent depuis Meta Business Manager.</p>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">WABA ID <span className="text-gray-400 font-normal">(optionnel)</span></label>
                   <input value={credForm.waba_id}
                     onChange={e => setCredForm({...credForm, waba_id: e.target.value})}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono"
-                    placeholder="WhatsApp Business Account ID" />
+                    placeholder="851253647787120" />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Numéro affiché <span className="text-gray-400 font-normal">(optionnel)</span></label>
                   <input value={credForm.display_phone_number}
                     onChange={e => setCredForm({...credForm, display_phone_number: e.target.value})}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                    placeholder="+33 6 12 34 56 78" />
+                    placeholder="+237 6 12 34 56 78" />
                 </div>
-
                 <button type="submit" disabled={submitting}
                   className="w-full bg-green-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50">
-                  {submitting ? 'Enregistrement...' : credentials?.configured ? '💾 Mettre à jour' : '🔌 Connecter WhatsApp'}
+                  {submitting ? 'Enregistrement...' : credentials?.configured ? '💾 Mettre à jour' : '� Enregistrer'}
                 </button>
               </form>
             </div>

@@ -40,6 +40,150 @@ class CreateTemplateRequest(BaseModel):
     components: dict
 
 
+class EmbeddedSignupRequest(BaseModel):
+    """Code reçu après le flux OAuth Meta Embedded Signup"""
+    code: str = Field(..., min_length=5)
+    redirect_uri: Optional[str] = Field(None)
+
+
+@router.post("/embedded-signup", status_code=status.HTTP_200_OK)
+async def embedded_signup(
+    request: EmbeddedSignupRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+    company_id: str = Depends(get_current_company_id),
+):
+    """
+    Flux Embedded Signup Meta :
+    1. Échange le code OAuth contre un access_token utilisateur
+    2. Récupère les WABAs et numéros associés au token
+    3. Abonne le WABA au webhook de l'app
+    4. Sauvegarde phone_number_id + access_token dans la BDD
+    """
+    import httpx
+    from app.channels.models import Channel, ChannelType, ChannelStatus, ChannelConfiguration, ChannelCredential
+    from app.channels.repositories import ChannelRepository, ChannelConfigurationRepository, ChannelCredentialRepository
+    from app.utils.encryption import encrypt_credential
+
+    app_id = settings.meta_app_id
+    app_secret = settings.meta_app_secret
+    api_version = settings.whatsapp_api_version
+
+    if not app_id or not app_secret:
+        raise HTTPException(status_code=500, detail="META_APP_ID ou META_APP_SECRET non configuré dans .env")
+
+    async with httpx.AsyncClient(timeout=15) as client:
+
+        # ── 1. Échanger le code contre un token utilisateur (Embedded Signup) ──────────────────
+        token_params: dict = {
+            "client_id": app_id,
+            "client_secret": app_secret,
+            "code": request.code,
+        }
+        # Embedded Signup avec config_id gère redirect_uri en interne
+        token_resp = await client.get(
+            f"https://graph.facebook.com/{api_version}/oauth/access_token",
+            params=token_params,
+        )
+        if token_resp.status_code != 200:
+            raise HTTPException(status_code=400, detail=f"Erreur Meta OAuth : {token_resp.text}")
+        user_token = token_resp.json().get("access_token")
+        if not user_token:
+            raise HTTPException(status_code=400, detail="Token non reçu depuis Meta")
+
+        # ── 2. Récupérer les WABAs liés à ce token ───────────────────────────
+        waba_resp = await client.get(
+            f"https://graph.facebook.com/{api_version}/me/businesses",
+            params={"access_token": user_token, "fields": "whatsapp_business_accounts"},
+        )
+        waba_data = waba_resp.json()
+        waba_id = None
+        phone_number_id = None
+        display_phone_number = None
+
+        for biz in waba_data.get("data", []):
+            for waba in biz.get("whatsapp_business_accounts", {}).get("data", []):
+                waba_id = waba.get("id")
+                # Récupérer les numéros de ce WABA
+                phones_resp = await client.get(
+                    f"https://graph.facebook.com/{api_version}/{waba_id}/phone_numbers",
+                    params={"access_token": user_token, "fields": "id,display_phone_number"},
+                )
+                phones = phones_resp.json().get("data", [])
+                if phones:
+                    phone_number_id = phones[0].get("id")
+                    display_phone_number = phones[0].get("display_phone_number")
+                    break
+            if phone_number_id:
+                break
+
+        if not waba_id or not phone_number_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Aucun WABA ou numéro trouvé pour ce compte. Vérifiez que vous avez bien autorisé l'accès WhatsApp.",
+            )
+
+        # ── 3. Abonner le WABA au webhook de l'app ───────────────────────────
+        sub_resp = await client.post(
+            f"https://graph.facebook.com/{api_version}/{waba_id}/subscribed_apps",
+            params={"access_token": user_token},
+        )
+        if sub_resp.status_code not in (200, 201):
+            raise HTTPException(status_code=400, detail=f"Erreur abonnement webhook : {sub_resp.text}")
+
+    # ── 4. Sauvegarder en BDD (même logique que /channels/whatsapp/credentials) ──
+    channel_repo = ChannelRepository(db)
+    config_repo = ChannelConfigurationRepository(db)
+    cred_repo = ChannelCredentialRepository(db)
+
+    channel = await channel_repo.get_by_type(UUID(company_id), ChannelType.WHATSAPP)
+    if not channel:
+        channel = Channel(
+            company_id=UUID(company_id),
+            channel_type=ChannelType.WHATSAPP,
+            name="WhatsApp",
+            status=ChannelStatus.ACTIVE,
+        )
+        db.add(channel)
+        await db.commit()
+        await db.refresh(channel)
+
+    for key, value in [
+        ("phone_number_id", phone_number_id),
+        ("waba_id", waba_id),
+        ("display_phone_number", display_phone_number or ""),
+    ]:
+        existing = await config_repo.get_by_key(channel.id, key)
+        if existing:
+            existing.value = value
+            await config_repo.update(existing)
+        else:
+            db.add(ChannelConfiguration(channel_id=channel.id, key=key, value=value))
+    await db.commit()
+
+    encrypted_token = encrypt_credential(user_token)
+    existing_cred = await cred_repo.get_by_type(channel.id, "ACCESS_TOKEN")
+    if existing_cred:
+        existing_cred.encrypted_value = encrypted_token
+        await cred_repo.update(existing_cred)
+    else:
+        db.add(ChannelCredential(
+            channel_id=channel.id,
+            credential_type="ACCESS_TOKEN",
+            encrypted_value=encrypted_token,
+        ))
+    await db.commit()
+
+    return {
+        "status": "connected",
+        "channel_id": str(channel.id),
+        "waba_id": waba_id,
+        "phone_number_id": phone_number_id,
+        "display_phone_number": display_phone_number,
+        "webhook_subscribed": True,
+    }
+
+
 @router.get("/webhook/info")
 async def get_webhook_info(
     request: Request,

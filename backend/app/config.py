@@ -45,11 +45,12 @@ class Settings(BaseSettings):
     # Credential encryption (Fernet key — generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
     credential_encryption_key: str = ""
 
-    # WhatsApp
-    whatsapp_phone_number_id: str = ""
-    whatsapp_access_token: str = ""
+    # WhatsApp / Meta
     whatsapp_webhook_verify_token: str = ""
     whatsapp_api_version: str = "v18.0"
+    meta_app_id: str = ""
+    meta_app_secret: str = ""
+    meta_business_id: str = ""
     
     # OpenAI
     openai_api_key: str = ""
