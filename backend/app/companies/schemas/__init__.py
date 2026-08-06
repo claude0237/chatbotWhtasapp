@@ -4,6 +4,7 @@ from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional
 import re
+from app.companies.models import SubscriptionPlan
 
 
 class CompanyBase(BaseModel):
@@ -38,6 +39,8 @@ class CompanyCreate(CompanyBase):
     """Schema for creating a company (super admin) — includes optional settings"""
     is_active: bool = True
     is_suspended: bool = False
+    ml_enabled: bool = False
+    subscription_plan: SubscriptionPlan = SubscriptionPlan.FREE
     # Inline company settings (created automatically with the company)
     timezone: str = "UTC"
     language: str = "en"
@@ -57,6 +60,19 @@ class CompanyUpdate(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
     is_active: Optional[bool] = None
+    ml_enabled: Optional[bool] = None
+    subscription_plan: Optional[str] = None
+    
+    @field_validator('subscription_plan')
+    @classmethod
+    def validate_subscription_plan(cls, v: Optional[str]) -> Optional[SubscriptionPlan]:
+        """Validate subscription plan"""
+        if v is None:
+            return None
+        try:
+            return SubscriptionPlan(v)
+        except ValueError:
+            raise ValueError(f'Invalid subscription plan. Must be one of: {[p.value for p in SubscriptionPlan]}')
 
 
 class CompanyResponse(CompanyBase):
@@ -64,6 +80,8 @@ class CompanyResponse(CompanyBase):
     id: UUID
     is_active: bool
     is_suspended: bool
+    ml_enabled: bool
+    subscription_plan: SubscriptionPlan
     created_at: datetime
     updated_at: datetime
     

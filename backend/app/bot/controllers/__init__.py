@@ -62,6 +62,8 @@ class BotConfigurationCreateRequest(BaseModel):
     ml_max_tokens: Optional[int] = None
     fallback_strategy: Optional[str] = None
     confidence_threshold: Optional[str] = None
+    followup_timeout_minutes: Optional[int] = Field(default=60)
+    followup_max_retries: Optional[int] = Field(default=3)
 
 
 class BotConfigurationUpdateRequest(BaseModel):
@@ -84,6 +86,8 @@ class BotConfigurationUpdateRequest(BaseModel):
     ml_max_tokens: Optional[int] = None
     fallback_strategy: Optional[str] = None
     confidence_threshold: Optional[str] = None
+    followup_timeout_minutes: Optional[int] = Field(default=60)
+    followup_max_retries: Optional[int] = Field(default=3)
 
 
 class BotScenarioResponse(BaseModel):
@@ -139,6 +143,19 @@ class BotKeywordUpdateRequest(BaseModel):
     category: Optional[str] = Field(None, max_length=100)
 
 
+class BotSimulateRequest(BaseModel):
+    """Bot simulation request schema"""
+    company_id: str
+    message: str
+
+
+class BotSimulateResponse(BaseModel):
+    """Bot simulation response schema"""
+    response: str
+    source: str
+    confidence: float
+
+
 # Bot Configuration endpoints
 @router.get("/config")
 async def get_bot_config(
@@ -170,6 +187,8 @@ async def get_bot_config(
         "avatar_url": config.avatar_url,
         "native_rules": config.native_rules,
         "business_hours": config.business_hours,
+        "followup_timeout_minutes": config.followup_timeout_minutes,
+        "followup_max_retries": config.followup_max_retries,
         "created_at": config.created_at.isoformat(),
         "updated_at": config.updated_at.isoformat()
     }
@@ -196,7 +215,9 @@ async def create_bot_config(
         language=request.language,
         timezone=request.timezone,
         avatar_url=request.avatar_url,
-        native_rules=request.native_rules
+        native_rules=request.native_rules,
+        followup_timeout_minutes=request.followup_timeout_minutes,
+        followup_max_retries=request.followup_max_retries
     )
     # Save business_hours directly
     if request.business_hours is not None:
@@ -219,6 +240,8 @@ async def create_bot_config(
         "avatar_url": config.avatar_url,
         "native_rules": config.native_rules,
         "business_hours": config.business_hours,
+        "followup_timeout_minutes": config.followup_timeout_minutes,
+        "followup_max_retries": config.followup_max_retries,
         "created_at": config.created_at.isoformat(),
         "updated_at": config.updated_at.isoformat()
     }
@@ -252,7 +275,9 @@ async def update_bot_config(
         timezone=request.timezone,
         avatar_url=request.avatar_url,
         native_rules=request.native_rules,
-        bot_type=request.bot_type
+        bot_type=request.bot_type,
+        followup_timeout_minutes=request.followup_timeout_minutes,
+        followup_max_retries=request.followup_max_retries
     )
     # Save business_hours directly
     if request.business_hours is not None:
@@ -275,6 +300,8 @@ async def update_bot_config(
         "avatar_url": updated_config.avatar_url,
         "native_rules": updated_config.native_rules,
         "business_hours": updated_config.business_hours,
+        "followup_timeout_minutes": updated_config.followup_timeout_minutes,
+        "followup_max_retries": updated_config.followup_max_retries,
         "created_at": updated_config.created_at.isoformat(),
         "updated_at": updated_config.updated_at.isoformat()
     }
@@ -586,3 +613,35 @@ async def delete_keyword(
     await keyword_repository.delete(keyword_id)
     
     return {"message": "Keyword deleted successfully"}
+
+
+@router.post("/simulate")
+async def simulate_bot(
+    request: BotSimulateRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Simulate bot response with ML support (no auth required for testing)"""
+    from app.bot.engine import BotEngine
+    from uuid import UUID
+
+    bot_engine = BotEngine(db)
+
+    # Use a dummy phone number for simulation
+    response = await bot_engine.process(
+        company_id=UUID(request.company_id),
+        phone_number="SIMULATION",
+        message_text=request.message
+    )
+
+    if response is None:
+        return {
+            "response": "Bot not configured",
+            "source": "error",
+            "confidence": 0.0
+        }
+
+    return {
+        "response": response,
+        "source": "bot",
+        "confidence": 1.0
+    }

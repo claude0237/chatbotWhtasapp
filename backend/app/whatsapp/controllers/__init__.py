@@ -46,6 +46,13 @@ class EmbeddedSignupRequest(BaseModel):
     redirect_uri: Optional[str] = Field(None)
 
 
+class SimulateRequest(BaseModel):
+    """Request schema for bot simulation"""
+    company_id: str
+    phone_number: str
+    message: str
+
+
 @router.post("/embedded-signup", status_code=status.HTTP_200_OK)
 async def embedded_signup(
     request: EmbeddedSignupRequest,
@@ -474,3 +481,33 @@ async def get_active_templates(
         }
         for template in templates
     ]
+
+
+@router.post("/simulate")
+async def simulate_bot(
+    request: SimulateRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Simulate bot response with ML support"""
+    from app.bot.engine import BotEngine
+    
+    bot_engine = BotEngine(db)
+    
+    response = await bot_engine.process(
+        company_id=UUID(request.company_id),
+        phone_number=request.phone_number,
+        message_text=request.message
+    )
+    
+    if response is None:
+        return {
+            "response": "Bot not configured",
+            "source": "error",
+            "confidence": 0.0
+        }
+    
+    return {
+        "response": response,
+        "source": "bot",
+        "confidence": 1.0
+    }

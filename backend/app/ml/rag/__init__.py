@@ -31,19 +31,56 @@ class RAGEngine:
         threshold: float = 0.5
     ) -> List[tuple[str, float]]:
         """Retrieve relevant chunks from knowledge base"""
-        # Generate query embedding
-        query_embedding = await self.embedding_service.embed_text(query)
+        # Try vector search first
+        try:
+            query_embedding = await self.embedding_service.embed_text(query)
+            similar_chunks = await self.vector_store.search_similar(
+                company_id=company_id,
+                query_embedding=query_embedding,
+                limit=top_k,
+                threshold=threshold
+            )
+            if similar_chunks:
+                return [(chunk.content, similarity) for chunk, similarity in similar_chunks]
+        except Exception as e:
+            print(f"Vector search failed: {str(e)}")
         
-        # Search for similar chunks
-        similar_chunks = await self.vector_store.search_similar(
-            company_id=company_id,
-            query_embedding=query_embedding,
-            limit=top_k,
-            threshold=threshold
+        # Fallback to text search in knowledge_base table
+        from sqlalchemy import select, and_, or_
+        from app.knowledge.models import KnowledgeBase
+        
+        result = await self.db.execute(
+            select(KnowledgeBase).where(
+                and_(
+                    KnowledgeBase.company_id == company_id,
+                    KnowledgeBase.is_active == True
+                )
+            )
         )
+        entries = result.scalars().all()
         
-        # Return (content, similarity) tuples
-        return [(chunk.content, similarity) for chunk, similarity in similar_chunks]
+        # Simple text matching based on query terms
+        query_terms = query.lower().split()
+        scored_entries = []
+        
+        for entry in entries:
+            content_lower = entry.content.lower()
+            title_lower = entry.title.lower()
+            
+            # Calculate simple relevance score
+            score = 0.0
+            for term in query_terms:
+                if term in content_lower:
+                    score += 0.5
+                if term in title_lower:
+                    score += 0.3
+            
+            if score > 0:
+                scored_entries.append((entry.content, min(score, 1.0)))
+        
+        # Sort by score and return top results
+        scored_entries.sort(key=lambda x: x[1], reverse=True)
+        return scored_entries[:top_k]
     
     async def generate(
         self,

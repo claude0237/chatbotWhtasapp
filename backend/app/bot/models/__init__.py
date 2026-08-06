@@ -20,6 +20,7 @@ class MLProvider(str, enum.Enum):
     OPENAI = "OPENAI"
     ANTHROPIC = "ANTHROPIC"
     OLLAMA = "OLLAMA"
+    MISTRAL = "MISTRAL"
 
 
 class FallbackStrategy(str, enum.Enum):

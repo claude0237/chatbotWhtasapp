@@ -249,6 +249,90 @@ class OllamaLLMProvider(LLMProvider):
             raise RuntimeError(f"Ollama generation failed: {str(e)}")
 
 
+class MistralLLMProvider(LLMProvider):
+    """Mistral LLM provider"""
+    
+    def __init__(self, api_key: str, model: str = "mistral-small-latest"):
+        self.api_key = api_key
+        self.model = model
+    
+    async def generate_response(
+        self,
+        prompt: str,
+        context: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 500
+    ) -> str:
+        """Generate response using Mistral API"""
+        try:
+            import httpx
+            
+            messages = []
+            if context:
+                messages.append({"role": "system", "content": context})
+            messages.append({"role": "user", "content": prompt})
+            
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    "https://api.mistral.ai/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": self.model,
+                        "messages": messages,
+                        "temperature": temperature,
+                        "max_tokens": max_tokens
+                    }
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    return data["choices"][0]["message"]["content"]
+                else:
+                    raise RuntimeError(f"Mistral API error: {response.status_code} - {response.text}")
+        except ImportError:
+            raise ImportError("httpx library not installed")
+        except Exception as e:
+            raise RuntimeError(f"Mistral generation failed: {str(e)}")
+    
+    async def generate_response_with_history(
+        self,
+        messages: List[Dict[str, str]],
+        temperature: float = 0.7,
+        max_tokens: int = 500
+    ) -> str:
+        """Generate response with conversation history using Mistral API"""
+        try:
+            import httpx
+            
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    "https://api.mistral.ai/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": self.model,
+                        "messages": messages,
+                        "temperature": temperature,
+                        "max_tokens": max_tokens
+                    }
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    return data["choices"][0]["message"]["content"]
+                else:
+                    raise RuntimeError(f"Mistral API error: {response.status_code} - {response.text}")
+        except ImportError:
+            raise ImportError("httpx library not installed")
+        except Exception as e:
+            raise RuntimeError(f"Mistral generation failed: {str(e)}")
+
+
 # Factory function to get LLM provider
 def get_llm_provider(provider_type: str) -> LLMProvider:
     """Get LLM provider by type"""
@@ -266,6 +350,11 @@ def get_llm_provider(provider_type: str) -> LLMProvider:
         return OllamaLLMProvider(
             base_url=settings.ollama_base_url or "http://localhost:11434",
             model=settings.ollama_model or "llama2"
+        )
+    elif provider_type == "mistral":
+        return MistralLLMProvider(
+            api_key=settings.mistral_api_key,
+            model=settings.mistral_model or "mistral-small-latest"
         )
     else:
         raise ValueError(f"Unsupported LLM provider: {provider_type}")

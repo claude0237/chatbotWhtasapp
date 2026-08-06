@@ -14,10 +14,12 @@ interface Company {
   email: string;
   is_active: boolean;
   is_suspended: boolean;
+  ml_enabled: boolean;
+  subscription_plan: string;
   created_at: string;
 }
 
-const EMPTY_FORM = { name: '', slug: '', email: '', phone: '', description: '', website: '', logo_url: '', address: '', timezone: 'Africa/Douala', language: 'fr', currency: 'XAF', theme_color: '#3b82f6' };
+const EMPTY_FORM = { name: '', slug: '', email: '', phone: '', description: '', website: '', logo_url: '', address: '', timezone: 'Africa/Douala', language: 'fr', currency: 'XAF', theme_color: '#3b82f6', ml_enabled: false, subscription_plan: 'FREE' };
 
 export default function CompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -28,6 +30,7 @@ export default function CompaniesPage() {
   const [editing, setEditing] = useState<Company | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Company | null>(null);
   const { user } = useAuth();
 
@@ -39,14 +42,16 @@ export default function CompaniesPage() {
       const response = await api.get('/companies/');
       setCompanies(response.data);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Erreur lors du chargement');
+      const errorDetail = err.response?.data?.detail;
+      const errorMessage = typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail;
+      setError(errorMessage || 'Erreur lors du chargement');
     } finally {
       setLoading(false);
     }
   };
 
   const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setShowModal(true); };
-  const openEdit = (c: Company) => { setEditing(c); setForm({ name: c.name, slug: c.slug || '', email: c.email || '', phone: (c as any).phone || '', description: c.description || '', website: (c as any).website || '', logo_url: (c as any).logo_url || '', address: (c as any).address || '', timezone: (c as any).timezone || 'Africa/Douala', language: (c as any).language || 'fr', currency: (c as any).currency || 'XAF', theme_color: (c as any).theme_color || '#3b82f6' }); setShowModal(true); };
+  const openEdit = (c: Company) => { setEditing(c); setForm({ name: c.name, slug: c.slug || '', email: c.email || '', phone: (c as any).phone || '', description: c.description || '', website: (c as any).website || '', logo_url: (c as any).logo_url || '', address: (c as any).address || '', timezone: (c as any).timezone || 'Africa/Douala', language: (c as any).language || 'fr', currency: (c as any).currency || 'XAF', theme_color: (c as any).theme_color || '#3b82f6', ml_enabled: c.ml_enabled || false, subscription_plan: c.subscription_plan || 'FREE' }); setShowModal(true); };
   const closeModal = () => { setShowModal(false); setError(''); };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,7 +59,11 @@ export default function CompaniesPage() {
     setSubmitting(true); setError('');
     try {
       if (editing) {
-        await api.put(`/companies/${editing.id}`, form);
+        // Filter out empty string values for optional fields
+        const updateData = Object.fromEntries(
+          Object.entries(form).filter(([_, v]) => v !== '')
+        );
+        await api.put(`/companies/${editing.id}`, updateData);
         setSuccess('Entreprise mise à jour.');
       } else {
         const slug = form.slug || form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -64,7 +73,9 @@ export default function CompaniesPage() {
       closeModal();
       fetchCompanies();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Erreur lors de la sauvegarde');
+      const errorDetail = err.response?.data?.detail;
+      const errorMessage = typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail;
+      setError(errorMessage || 'Erreur lors de la sauvegarde');
     } finally {
       setSubmitting(false);
     }
@@ -75,7 +86,9 @@ export default function CompaniesPage() {
       await api.put(`/companies/${c.id}`, { is_active: !c.is_active });
       fetchCompanies();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Erreur');
+      const errorDetail = err.response?.data?.detail;
+      const errorMessage = typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail;
+      setError(errorMessage || 'Erreur');
     }
   };
 
@@ -87,14 +100,18 @@ export default function CompaniesPage() {
 
   const confirmDeleteAction = async () => {
     if (!confirmDelete) return;
+    setDeleting(true);
     try {
       await api.delete(`/companies/${confirmDelete.id}`);
       setSuccess('Entreprise supprimée.');
       setConfirmDelete(null);
       fetchCompanies();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Erreur lors de la suppression');
-      setConfirmDelete(null);
+      const errorDetail = err.response?.data?.detail;
+      const errorMessage = typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail;
+      setError(errorMessage || 'Erreur');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -151,7 +168,7 @@ export default function CompaniesPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {['Nom', 'Email', 'Statut', 'Créée le', 'Actions'].map(h => (
+                  {['Nom', 'Email', 'Statut', 'Plan', 'ML', 'Créée le', 'Actions'].map(h => (
                     <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -169,6 +186,23 @@ export default function CompaniesPage() {
                         c.is_active && !c.is_suspended ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
                         {c.is_active && !c.is_suspended ? '✅ Active' : '🔴 Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        c.subscription_plan === 'FREE' ? 'bg-gray-100 text-gray-800' :
+                        c.subscription_plan === 'BASIC' ? 'bg-blue-100 text-blue-800' :
+                        c.subscription_plan === 'PREMIUM' ? 'bg-purple-100 text-purple-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {c.subscription_plan}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        c.ml_enabled ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {c.ml_enabled ? '🤖 ON' : 'OFF'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
@@ -275,6 +309,25 @@ export default function CompaniesPage() {
               </div>
               <div className="border-t pt-3 mt-1">
                 <p className="text-xs font-semibold text-gray-500 mb-2">⚙️ Paramètres de l'entreprise</p>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Plan d'abonnement</label>
+                    <select value={form.subscription_plan} onChange={e => setForm({ ...form, subscription_plan: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-white focus:ring-2 focus:ring-green-500">
+                      <option value="FREE">FREE (Gratuit - Sans ML)</option>
+                      <option value="BASIC">BASIC (ML limité)</option>
+                      <option value="PREMIUM">PREMIUM (ML complet)</option>
+                      <option value="ENTERPRISE">ENTERPRISE (ML illimité)</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="ml_enabled" checked={form.ml_enabled}
+                      onChange={e => setForm({ ...form, ml_enabled: e.target.checked })}
+                      disabled={form.subscription_plan === 'FREE'}
+                      className="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500 disabled:opacity-50" />
+                    <label htmlFor="ml_enabled" className="text-sm font-medium text-gray-700">Activer ML</label>
+                  </div>
+                </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Fuseau horaire</label>

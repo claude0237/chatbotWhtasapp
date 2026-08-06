@@ -39,7 +39,10 @@ class MLEngine:
         self,
         company_id: UUID,
         message: str,
-        conversation_history: Optional[List[Dict[str, str]]] = None
+        conversation_history: Optional[List[Dict[str, str]]] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        confidence_threshold: Optional[float] = None
     ) -> Dict[str, Any]:
         """Process message using ML engine with RAG"""
         # Initialize for company
@@ -47,10 +50,10 @@ class MLEngine:
         
         config = await self.config_repository.get_active_configuration(company_id)
         
-        # Get ML parameters from config
-        temperature = float(config.ml_temperature) if config.ml_temperature else 0.7
-        max_tokens = config.ml_max_tokens if config.ml_max_tokens else 500
-        confidence_threshold = float(config.confidence_threshold) if config.confidence_threshold else 0.5
+        # Get ML parameters from arguments or fallback to config
+        temp = temperature if temperature is not None else (float(config.ml_temperature) if config.ml_temperature else 0.7)
+        tokens = max_tokens if max_tokens is not None else (config.ml_max_tokens if config.ml_max_tokens else 500)
+        threshold = confidence_threshold if confidence_threshold is not None else (float(config.confidence_threshold) if config.confidence_threshold else 0.5)
         
         # Generate response with RAG
         if conversation_history:
@@ -59,18 +62,18 @@ class MLEngine:
                 query=message,
                 conversation_history=conversation_history,
                 top_k=3,
-                threshold=confidence_threshold,
-                temperature=temperature,
-                max_tokens=max_tokens
+                threshold=threshold,
+                temperature=temp,
+                max_tokens=tokens
             )
         else:
             result = await self.rag_engine.generate_with_retrieval(
                 company_id=company_id,
                 query=message,
                 top_k=3,
-                threshold=confidence_threshold,
-                temperature=temperature,
-                max_tokens=max_tokens
+                threshold=threshold,
+                temperature=temp,
+                max_tokens=tokens
             )
         
         return result

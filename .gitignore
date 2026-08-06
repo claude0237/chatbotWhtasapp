@@ -81,12 +81,12 @@ frontend/tsconfig.tsbuildinfo
 *.crt
 secrets/
 credentials/
-backend/.env
-frontend/.env.local
-.env
-.env.local
-.env.prod
-.env.production
+# backend/.env
+# frontend/.env.local
+# .env
+# .env.local
+# .env.prod
+# .env.production
 
 # ── Docker ───────────────────────────────────────────────────────────────────
 docker-compose.override.yml

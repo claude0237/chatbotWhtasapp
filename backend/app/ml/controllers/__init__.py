@@ -370,6 +370,12 @@ class EvaluationRequest(BaseModel):
     test_data: List[dict] = Field(..., min_items=1)
 
 
+class SimulateRequest(BaseModel):
+    """Simulation request schema"""
+    company_id: str
+    message: str
+
+
 # ML Training endpoints
 @router.post("/train/intent-classifier", status_code=status.HTTP_201_CREATED)
 async def train_intent_classifier(
@@ -562,3 +568,68 @@ async def deploy_model(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Deployment failed: {str(e)}"
         )
+
+
+@router.post("/simulate")
+async def simulate_bot(
+    request: SimulateRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Simulate bot response with ML support (no auth required for testing)"""
+    from app.bot.engine import BotEngine
+    from uuid import UUID
+    
+    bot_engine = BotEngine(db)
+    
+    response = await bot_engine.process(
+        company_id=UUID(request.company_id),
+        phone_number="SIMULATION",
+        message_text=request.message
+    )
+    
+    if response is None:
+        return {
+            "response": "Bot not configured",
+            "source": "error",
+            "confidence": 0.0
+        }
+    
+    return {
+        "response": response,
+        "source": "bot",
+        "confidence": 1.0
+    }
+
+
+# Create a separate router for public endpoints without auth
+public_router = APIRouter()
+
+@public_router.post("/simulate")
+async def simulate_bot_public(
+    request: SimulateRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Simulate bot response with ML support (public endpoint - no auth)"""
+    from app.bot.engine import BotEngine
+    from uuid import UUID
+    
+    bot_engine = BotEngine(db)
+    
+    response = await bot_engine.process(
+        company_id=UUID(request.company_id),
+        phone_number="SIMULATION",
+        message_text=request.message
+    )
+    
+    if response is None:
+        return {
+            "response": "Bot not configured",
+            "source": "error",
+            "confidence": 0.0
+        }
+    
+    return {
+        "response": response,
+        "source": "bot",
+        "confidence": 1.0
+    }

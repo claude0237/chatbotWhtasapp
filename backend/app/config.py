@@ -65,6 +65,18 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = ""
     
+    # Mistral
+    mistral_api_key: str = ""
+    mistral_model: str = "mistral-small-latest"
+    
+    # ML Platform Configuration (default for all companies)
+    ml_default_provider: str = "OPENAI"  # OPENAI, ANTHROPIC, OLLAMA, MISTRAL
+    ml_default_model: str = "gpt-4"
+    ml_default_temperature: float = 0.7
+    ml_default_max_tokens: int = 500
+    ml_default_confidence_threshold: float = 0.5
+    ml_default_fallback_strategy: str = "ML_TO_NATIVE"
+    
     # Celery
     celery_broker_url: str
     celery_result_backend: str

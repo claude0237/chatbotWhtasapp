@@ -4,13 +4,14 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 # Sentinel prefix embedded in the return value when a handoff step fires.
 # Format: "__HANDOFF__:<message to send to client>"
 # The webhook layer detects this prefix and changes conversation status to WAITING.
 HANDOFF_PREFIX = "__HANDOFF__:"
 
-from app.bot.models import BotConversationState
+from app.bot.models import BotConversationState, BotType, FallbackStrategy
 from app.bot.repositories import (
     BotConfigurationRepository,
     BotKeywordRepository,
@@ -18,6 +19,8 @@ from app.bot.repositories import (
     BotConversationStateRepository,
 )
 from app.products.repositories import ProductRepository, ProductCategoryRepository
+from app.companies.models import Company, SubscriptionPlan, MLQuota, MLUsage
+from app.config import settings
 
 
 class BotEngine:
@@ -54,6 +57,14 @@ class BotEngine:
         if not config:
             return None
 
+        # Check if ML is enabled for the company and verify subscription plan
+        company_result = await self.db.execute(select(Company).where(Company.id == company_id))
+        company = company_result.scalar_one_or_none()
+        
+        # ML is only available for non-FREE plans
+        ml_enabled = company.ml_enabled if company else False
+        can_use_ml = ml_enabled and company and company.subscription_plan != SubscriptionPlan.FREE
+
         normalized = message_text.strip().upper()
 
         # ── 1. Active scenario mid-flight? ──────────────────────────────────
@@ -83,8 +94,101 @@ class BotEngine:
         if keyword_obj:
             return self._interpolate(keyword_obj.response, {})
 
-        # ── 4. Fallback ──────────────────────────────────────────────────────
+        # ── 4. ML Processing (if enabled, configured, and plan allows) ──────────
+        if can_use_ml and config.bot_type != BotType.NATIVE:
+            # Check ML quota before processing
+            if not await self._check_and_update_ml_usage(company_id, company):
+                # Quota exceeded, fall back to native
+                return self._interpolate(config.unknown_message or "Je n'ai pas compris votre message.", {})
+            
+            try:
+                from app.ml.engine import MLEngine
+                ml_engine = MLEngine(self.db)
+                
+                native_response = self._interpolate(config.unknown_message or "Je n'ai pas compris votre message.", {})
+                
+                # Use platform default ML configuration
+                ml_result = await ml_engine.process_message(
+                    company_id, 
+                    message_text,
+                    temperature=settings.ml_default_temperature,
+                    max_tokens=settings.ml_default_max_tokens,
+                    confidence_threshold=settings.ml_default_confidence_threshold
+                )
+                
+                # Check confidence threshold
+                if ml_result.get("confidence", 0) >= settings.ml_default_confidence_threshold:
+                    return ml_result.get("response", native_response)
+                else:
+                    # Fallback to native if confidence is low
+                    return native_response
+            except Exception:
+                # If ML fails, fall back to native
+                pass
+
+        # ── 5. Native Fallback ──────────────────────────────────────────────
         return self._interpolate(config.unknown_message or "Je n'ai pas compris votre message.", {})
+
+    async def _check_and_update_ml_usage(self, company_id: UUID, company: Company) -> bool:
+        """Check ML quota and update usage. Returns True if allowed, False if quota exceeded."""
+        # Get quota for company's plan
+        quota_result = await self.db.execute(select(MLQuota).where(MLQuota.plan == company.subscription_plan))
+        quota = quota_result.scalar_one_or_none()
+        
+        if not quota:
+            return False
+        
+        # Unlimited quota
+        if quota.monthly_requests == -1:
+            return True
+        
+        # Get or create usage record
+        now = datetime.utcnow()
+        current_month = now.year * 100 + now.month
+        
+        usage_result = await self.db.execute(select(MLUsage).where(MLUsage.company_id == company_id))
+        usage = usage_result.scalar_one_or_none()
+        
+        if not usage:
+            usage = MLUsage(
+                company_id=company_id,
+                monthly_requests=0,
+                daily_requests=0,
+                total_requests=0,
+                current_month=current_month,
+                current_day=now.date(),
+                created_at=now,
+                updated_at=now,
+            )
+            self.db.add(usage)
+            await self.db.commit()
+            await self.db.refresh(usage)
+        
+        # Reset counters if period changed
+        if usage.current_month != current_month:
+            usage.monthly_requests = 0
+            usage.current_month = current_month
+        
+        if usage.current_day != now.date():
+            usage.daily_requests = 0
+            usage.current_day = now.date()
+        
+        # Check monthly quota
+        if usage.monthly_requests >= quota.monthly_requests:
+            return False
+        
+        # Check daily quota if set
+        if quota.daily_requests and usage.daily_requests >= quota.daily_requests:
+            return False
+        
+        # Update usage
+        usage.monthly_requests += 1
+        usage.daily_requests += 1
+        usage.total_requests += 1
+        usage.updated_at = now
+        await self.db.commit()
+        
+        return True
 
     async def _advance_scenario(
         self,

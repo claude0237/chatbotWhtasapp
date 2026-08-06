@@ -78,7 +78,9 @@ export default function BotPage() {
   const [editingScenario,   setEditingScenario]   = useState<BotScenario | null>(null);
   const [editingKeyword,    setEditingKeyword]    = useState<BotKeyword | null>(null);
 
-  const [configForm,   setConfigForm]   = useState({ name: '', welcome_message: '', away_message: '', closing_message: '', unknown_message: '', language: 'fr', timezone: 'Africa/Douala', followup_timeout_minutes: 60, followup_max_retries: 3, business_hours: null as Record<string, {open: string; close: string} | null> | null });
+  const [configForm,   setConfigForm]   = useState({ name: '', welcome_message: '', away_message: '', closing_message: '', unknown_message: '', language: 'fr', timezone: 'Africa/Douala', bot_type: 'NATIVE', followup_timeout_minutes: 60, followup_max_retries: 3, business_hours: null as Record<string, {open: string; close: string} | null> | null });
+  const [companyMLEnabled, setCompanyMLEnabled] = useState(false);
+  const [companyPlan, setCompanyPlan] = useState('FREE');
   const [scenarioForm, setScenarioForm] = useState({ name: '', trigger_keyword: '', is_active: true });
   const [scenarioSteps, setScenarioSteps] = useState<StepDraft[]>([{ ...BLANK_STEP }]);
   const [keywordForm,  setKeywordForm]  = useState({ keyword: '', response: '', category: '' });
@@ -209,6 +211,13 @@ export default function BotPage() {
     fetchBotConfig(); fetchScenarios(); fetchKeywords();
     const cid = (user as any)?.company_id;
     if (cid) productsService.getCategories(cid).then(setCategories).catch(() => {});
+    // Fetch company ML enabled status and plan
+    if (cid) {
+      api.get(`/companies/${cid}`).then(res => {
+        setCompanyMLEnabled(res.data.ml_enabled || false);
+        setCompanyPlan(res.data.subscription_plan || 'FREE');
+      }).catch(() => {});
+    }
   }, [user]);
   useEffect(() => { simEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [simMessages]);
 
@@ -411,6 +420,24 @@ export default function BotPage() {
     const matchedKw = keywords.find(k => normalized.includes(k.keyword.toUpperCase()));
     if (matchedKw) botReply = simInterpolate(matchedKw.response, {});
 
+    // ── 4. ML Processing (if enabled and configured) ─────────────────────────
+    if (!matchedKw && config.bot_type !== 'NATIVE' && companyMLEnabled && companyPlan !== 'FREE') {
+      try {
+        const cid = (user as any)?.company_id;
+        if (cid) {
+          // Use the bot simulate endpoint
+          const response = await api.post('/bot/simulate', {
+            company_id: cid,
+            message: userMsg
+          });
+          botReply = response.data.response || botReply;
+        }
+      } catch (e) {
+        console.error('ML simulation failed:', e);
+        // Fallback to default message
+      }
+    }
+
     setSimMessages(prev => [...prev, { role: 'bot', text: botReply }]);
   };
 
@@ -442,7 +469,7 @@ export default function BotPage() {
               </button>
             )}
             {!config && (
-              <button onClick={() => { setConfigForm({ name: '', welcome_message: 'Bonjour ! Comment puis-je vous aider ?', away_message: '', closing_message: 'Merci, à bientôt !', unknown_message: 'Je ne comprends pas. Souhaitez-vous parler à un agent ?', language: 'fr', timezone: 'Africa/Douala', followup_timeout_minutes: 60, followup_max_retries: 3, business_hours: null }); setShowConfigModal(true); }}
+              <button onClick={() => { setConfigForm({ name: '', welcome_message: 'Bonjour ! Comment puis-je vous aider ?', away_message: '', closing_message: 'Merci, à bientôt !', unknown_message: 'Je ne comprends pas. Souhaitez-vous parler à un agent ?', language: 'fr', timezone: 'Africa/Douala', bot_type: 'NATIVE', followup_timeout_minutes: 60, followup_max_retries: 3, business_hours: null }); setShowConfigModal(true); }}
                 className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-medium">
                 + Créer le bot
               </button>
@@ -482,7 +509,7 @@ export default function BotPage() {
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <div className="flex justify-between items-center mb-5">
                   <h2 className="text-lg font-semibold text-gray-900">Configuration générale</h2>
-                  <button onClick={() => { setConfigForm({ name: config.name, welcome_message: config.welcome_message || '', away_message: config.away_message || '', closing_message: config.closing_message || '', unknown_message: config.unknown_message || '', language: config.language, timezone: config.timezone, followup_timeout_minutes: (config as any).followup_timeout_minutes ?? 60, followup_max_retries: (config as any).followup_max_retries ?? 3, business_hours: config.business_hours || null }); setShowConfigModal(true); }}
+                  <button onClick={() => { setConfigForm({ name: config.name, welcome_message: config.welcome_message || '', away_message: config.away_message || '', closing_message: config.closing_message || '', unknown_message: config.unknown_message || '', language: config.language, timezone: config.timezone, bot_type: config.bot_type || 'NATIVE', followup_timeout_minutes: (config as any).followup_timeout_minutes ?? 60, followup_max_retries: (config as any).followup_max_retries ?? 3, business_hours: config.business_hours || null }); setShowConfigModal(true); }}
                     className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 text-sm font-medium">
                     ✏️ Modifier
                   </button>
@@ -669,9 +696,37 @@ export default function BotPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
             <h3 className="font-bold text-gray-900 mb-4">{config ? '✏️ Modifier le bot' : '🤖 Créer le bot'}</h3>
-            <form onSubmit={async e => { e.preventDefault(); setSubmitting(true); try { if (config) await api.put('/bot/config', configForm); else await api.post('/bot/config', { ...configForm, bot_type: 'NATIVE' }); setShowConfigModal(false); fetchBotConfig(); } catch (err: any) { setError(err.response?.data?.detail || 'Erreur'); } finally { setSubmitting(false); } }} className="space-y-3">
+            <form onSubmit={async e => { e.preventDefault(); setSubmitting(true); try { 
+              const formData = { ...configForm };
+              // Auto-set ml_enabled based on bot_type
+              if (formData.bot_type === 'ML' || formData.bot_type === 'HYBRID') {
+                formData.ml_enabled = true;
+              } else {
+                formData.ml_enabled = false;
+              }
+              if (config) await api.put('/bot/config', formData); else await api.post('/bot/config', formData); 
+              setShowConfigModal(false); fetchBotConfig(); } catch (err: any) { setError(err.response?.data?.detail || 'Erreur'); } finally { setSubmitting(false); } }} className="space-y-3">
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Nom du bot *</label>
                 <input required value={configForm.name} onChange={e => setConfigForm({...configForm, name: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" placeholder="Mon chatbot" /></div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mode du bot</label>
+                {companyPlan === 'FREE' ? (
+                  <div className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                    Mode Natif (règles, scénarios, mots-clés)
+                    <p className="text-xs text-gray-500 mt-1">Le ML n'est pas disponible avec le plan FREE. Contactez le Super Admin pour passer à un plan supérieur.</p>
+                  </div>
+                ) : (
+                  <select 
+                    value={configForm.bot_type || 'NATIVE'}
+                    onChange={e => setConfigForm({...configForm, bot_type: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="NATIVE">Mode Natif (règles, scénarios, mots-clés)</option>
+                    <option value="ML">Mode ML (Machine Learning uniquement)</option>
+                    <option value="HYBRID">Mode Hybride (ML + fallback natif)</option>
+                  </select>
+                )}
+              </div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Message de bienvenue</label>
                 <textarea value={configForm.welcome_message} onChange={e => setConfigForm({...configForm, welcome_message: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" rows={2} placeholder="Bonjour ! Comment puis-je vous aider ?" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Message de clôture</label>

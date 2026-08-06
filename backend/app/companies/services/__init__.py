@@ -29,6 +29,8 @@ class CompanyService:
             address=company_data.address,
             is_active=company_data.is_active,
             is_suspended=company_data.is_suspended,
+            ml_enabled=company_data.ml_enabled,
+            subscription_plan=company_data.subscription_plan,
         )
         company = await self.company_repository.create(company)
 

@@ -38,8 +38,5 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     deleted_at = Column(DateTime, nullable=True)
     
-    # Relationships
-    company = relationship("Company", backref="users")
-    
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, role={self.role})>"

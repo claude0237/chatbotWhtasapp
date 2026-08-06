@@ -216,7 +216,9 @@ class BotConfigurationService:
         language: str = "en",
         timezone: str = "UTC",
         avatar_url: Optional[str] = None,
-        native_rules: Optional[Dict[str, Any]] = None
+        native_rules: Optional[Dict[str, Any]] = None,
+        followup_timeout_minutes: int = 60,
+        followup_max_retries: int = 3
     ) -> BotConfiguration:
         """Create a new bot configuration"""
         config = BotConfiguration(
@@ -230,7 +232,9 @@ class BotConfigurationService:
             language=language,
             timezone=timezone,
             avatar_url=avatar_url,
-            native_rules=native_rules
+            native_rules=native_rules,
+            followup_timeout_minutes=followup_timeout_minutes,
+            followup_max_retries=followup_max_retries
         )
         return await self.repository.create(config)
     
@@ -246,7 +250,9 @@ class BotConfigurationService:
         timezone: Optional[str] = None,
         avatar_url: Optional[str] = None,
         native_rules: Optional[Dict[str, Any]] = None,
-        bot_type: Optional[BotType] = None
+        bot_type: Optional[BotType] = None,
+        followup_timeout_minutes: Optional[int] = None,
+        followup_max_retries: Optional[int] = None
     ) -> Optional[BotConfiguration]:
         """Update bot configuration"""
         config = await self.repository.get_by_id(config_id)
@@ -271,6 +277,10 @@ class BotConfigurationService:
                 config.native_rules = native_rules
             if bot_type is not None:
                 config.bot_type = bot_type
+            if followup_timeout_minutes is not None:
+                config.followup_timeout_minutes = followup_timeout_minutes
+            if followup_max_retries is not None:
+                config.followup_max_retries = followup_max_retries
             return await self.repository.update(config)
         return None
     
