@@ -5,6 +5,18 @@ import { useHashTab } from '../../hooks/useHashTab';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../lib/api';
 import AppLayout from '../../components/AppLayout';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts';
 
 interface WhatsAppMessage {
   id: string; message_id: string; direction: string; status: string;
@@ -18,225 +30,580 @@ interface WACredentials {
   configured: boolean; channel_id?: string; status?: string;
   phone_number_id?: string; waba_id?: string;
   display_phone_number?: string; access_token_masked?: string;
+  meta_app_id?: string; meta_app_secret_masked?: string;
+  meta_business_id?: string; webhook_verify_token?: string;
+  webhook_url?: string;
 }
-interface WebhookInfo {
-  webhook_url: string;
-  verify_token: string;
-  verify_token_configured: boolean;
-  events_to_subscribe: string[];
+interface PerformanceStats {
+  company_id: string;
+  company_name: string;
+  total_messages_incoming: number;
+  total_messages_outgoing: number;
+  total_messages_failed: number;
+  success_rate: number;
+  avg_response_time_seconds?: number;
+  total_contacts: number;
+  new_contacts_period: number;
+  daily_stats: Array<{ date: string; incoming: number; outgoing: number; failed: number; new_contacts: number }>;
 }
 
-const META_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID || '';
-const META_CONFIG_ID = process.env.NEXT_PUBLIC_META_CONFIG_ID || META_APP_ID;
+interface WebhookStats {
+  company_id: string;
+  company_name: string;
+  configured: boolean;
+  webhook_url?: string;
+  last_message_received?: string;
+  last_message_sent?: string;
+  messages_incoming_24h: number;
+  messages_outgoing_24h: number;
+  messages_failed_24h: number;
+  api_connection_status: string;
+  phone_number_id?: string;
+  status: string;
+}
 
-function EmbeddedSignupButton({
-  onSuccess,
-  onError,
-}: {
-  onSuccess: (data: any) => void;
-  onError: (msg: string) => void;
-}) {
-  const [loading, setLoading] = useState(false);
-  const [sdkReady, setSdkReady] = useState(false);
+function SuperAdminWebhookPanel() {
+  const [activeTab, setActiveTab] = useState<'webhooks' | 'performance'>('webhooks');
+  const [webhookStats, setWebhookStats] = useState<WebhookStats[]>([]);
+  const [performanceStats, setPerformanceStats] = useState<PerformanceStats[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [daysPeriod, setDaysPeriod] = useState(30);
+  const [chartType, setChartType] = useState<'line' | 'bar'>('line');
 
   useEffect(() => {
-    if ((window as any).FB) { setSdkReady(true); return; }
-    const script = document.createElement('script');
-    script.src = 'https://connect.facebook.net/fr_FR/sdk.js';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      (window as any).FB.init({ appId: META_APP_ID, autoLogAppEvents: true, xfbml: true, version: 'v19.0' });
-      setSdkReady(true);
-    };
-    document.body.appendChild(script);
-  }, []);
+    fetchWebhookStats();
+    fetchPerformanceStats();
+  }, [daysPeriod]);
 
-  const handleClick = () => {
-    if (!(window as any).FB) { onError('SDK Meta non chargé, rechargez la page.'); return; }
-    if (window.location.protocol !== 'https:') {
-      onError('FB.login requiert HTTPS. Accédez à l\'application via l\'URL Cloudflare (https://xxx.trycloudflare.com) et non via http://localhost.');
-      return;
+  const fetchWebhookStats = async () => {
+    try {
+      const r = await api.get('/whatsapp/admin/webhook-stats');
+      setWebhookStats(r.data.stats);
+    } catch (err: unknown) {
+      console.error('Failed to fetch webhook stats:', err);
+    } finally { 
+      setLoading(false); 
+      setRefreshing(false);
     }
-    setLoading(true);
-    console.log('Starting FB.login with config_id:', META_CONFIG_ID);
-    (window as any).FB.login(
-      (response: any) => {
-        console.log('FB.login response:', response);
-        if (response.authResponse?.code) {
-          console.log('Code received, sending to backend');
-          api.post('/whatsapp/embedded-signup', { code: response.authResponse.code })
-            .then((res) => { onSuccess(res.data); })
-            .catch((err: any) => { onError(err.response?.data?.detail || 'Erreur connexion WhatsApp'); })
-            .finally(() => { setLoading(false); });
-        } else {
-          console.log('No code in response, error:', response);
-          onError('Connexion annulée ou refusée par Meta.');
-          setLoading(false);
-        }
-      },
-      {
-        config_id: META_CONFIG_ID,
-        response_type: 'code',
-        override_default_response_type: true,
-        extras: { setup: {}, featureType: '', sessionInfoVersion: '3' },
-      }
+  };
+
+  const fetchPerformanceStats = async () => {
+    try {
+      const r = await api.get('/whatsapp/admin/performance-stats', { params: { days: daysPeriod } });
+      setPerformanceStats(r.data.stats);
+    } catch (err: unknown) {
+      console.error('Failed to fetch performance stats:', err);
+    }
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchWebhookStats();
+    fetchPerformanceStats();
+  };
+
+  const getStatusBadge = (status: string) => {
+    const styles: Record<string, string> = {
+      active: 'bg-green-100 text-green-800',
+      inactive: 'bg-yellow-100 text-yellow-800',
+      dead: 'bg-red-100 text-red-800',
+      not_configured: 'bg-gray-100 text-gray-800',
+      no_messages: 'bg-gray-100 text-gray-800',
+    };
+    const labels: Record<string, string> = {
+      active: '✅ Actif',
+      inactive: '⚠️ Inactif',
+      dead: '❌ Mort',
+      not_configured: '⚙️ Non configuré',
+      no_messages: '📭 Aucun message',
+    };
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status] || styles.not_configured}`}>
+        {labels[status] || status}
+      </span>
     );
   };
 
-  if (!META_APP_ID) return (
-    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-700">
-      ⚠️ <strong>NEXT_PUBLIC_META_APP_ID</strong> non défini dans <code>frontend/.env.local</code> — le bouton Embedded Signup est désactivé.
-    </div>
-  );
-
-  return (
-    <div className="bg-white rounded-xl border-2 border-blue-200 p-6">
-      <div className="flex items-start gap-3 mb-4">
-        <span className="text-3xl">🔵</span>
-        <div>
-          <h2 className="text-base font-semibold text-gray-900">Connexion via Meta <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full ml-1">Recommandé</span></h2>
-          <p className="text-xs text-gray-500 mt-1">
-            Connectez votre compte WhatsApp Business en un clic. Meta vous guidera pour autoriser l'accès — aucune copie manuelle de token nécessaire.
-          </p>
-        </div>
-      </div>
-      <button
-        onClick={handleClick}
-        disabled={loading || !sdkReady}
-        className="w-full flex items-center justify-center gap-3 bg-[#1877F2] hover:bg-[#0e6ae4] text-white py-3 rounded-xl text-sm font-semibold disabled:opacity-50 transition-colors"
-      >
-        {loading ? (
-          <span>Connexion en cours…</span>
-        ) : (
-          <>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-            Connecter avec Facebook / Meta
-          </>
-        )}
-      </button>
-      <p className="text-xs text-center text-gray-400 mt-3">
-        Un popup Meta s'ouvrira pour autoriser l'accès à votre compte WhatsApp Business.
-      </p>
-    </div>
-  );
-}
-
-
-function SuperAdminWebhookPanel() {
-  const [webhookInfo, setWebhookInfo] = useState<WebhookInfo | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.get('/whatsapp/webhook/info').then(r => setWebhookInfo(r.data)).catch(() => {}).finally(() => setLoading(false));
-  }, []);
-
-  const copy = (text: string, key: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(key);
-    setTimeout(() => setCopied(null), 2000);
+  const getApiStatusBadge = (status: string) => {
+    const styles: Record<string, string> = {
+      ok: 'bg-green-100 text-green-800',
+      error: 'bg-red-100 text-red-800',
+      timeout: 'bg-yellow-100 text-yellow-800',
+      unknown: 'bg-gray-100 text-gray-800',
+    };
+    const labels: Record<string, string> = {
+      ok: '✅ OK',
+      error: '❌ Erreur',
+      timeout: '⏱️ Timeout',
+      unknown: '❓ Inconnu',
+    };
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status] || styles.unknown}`}>
+        {labels[status] || status}
+      </span>
+    );
   };
 
-  if (loading) return <div className="text-gray-400 text-sm">Chargement…</div>;
+  const formatTimeAgo = (timestamp?: string) => {
+    if (!timestamp) return 'Jamais';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'À l\'instant';
+    if (diffMins < 60) return `Il y a ${diffMins} min`;
+    if (diffHours < 24) return `Il y a ${diffHours} h`;
+    return `Il y a ${diffDays} j`;
+  };
+
+  if (loading) return <div className="text-gray-400 text-sm">Chargement des statistiques…</div>;
+
+  const configuredCount = webhookStats.filter(s => s.configured).length;
+  const activeCount = webhookStats.filter(s => s.status === 'active').length;
+  const totalIncoming = webhookStats.reduce((sum, s) => sum + s.messages_incoming_24h, 0);
+  const totalOutgoing = webhookStats.reduce((sum, s) => sum + s.messages_outgoing_24h, 0);
+  const totalFailed = webhookStats.reduce((sum, s) => sum + s.messages_failed_24h, 0);
+
+  const totalPerfIncoming = performanceStats.reduce((sum, s) => sum + s.total_messages_incoming, 0);
+  const totalPerfOutgoing = performanceStats.reduce((sum, s) => sum + s.total_messages_outgoing, 0);
+  const totalPerfFailed = performanceStats.reduce((sum, s) => sum + s.total_messages_failed, 0);
+  const totalContacts = performanceStats.reduce((sum, s) => sum + s.total_contacts, 0);
+  const totalNewContacts = performanceStats.reduce((sum, s) => sum + s.new_contacts_period, 0);
+  const avgSuccessRate = performanceStats.length > 0 
+    ? performanceStats.reduce((sum, s) => sum + s.success_rate, 0) / performanceStats.length 
+    : 0;
+
+  // Aggregate daily stats across all companies for the chart
+  const aggregatedDailyStats = performanceStats.length > 0 
+    ? performanceStats[0].daily_stats.map((day, index) => {
+        const aggregated = {
+          date: new Date(day.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
+          incoming: 0,
+          outgoing: 0,
+          failed: 0,
+          newContacts: 0
+        };
+        performanceStats.forEach(company => {
+          if (company.daily_stats[index]) {
+            aggregated.incoming += company.daily_stats[index].incoming;
+            aggregated.outgoing += company.daily_stats[index].outgoing;
+            aggregated.failed += company.daily_stats[index].failed;
+            aggregated.newContacts += company.daily_stats[index].new_contacts || 0;
+          }
+        });
+        return aggregated;
+      })
+    : [];
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">🔗 Webhook Meta — Configuration globale</h1>
-        <p className="text-sm text-gray-500">
-          À configurer <strong>une seule fois</strong> sur Meta for Developers. Toutes les entreprises partagent ce même endpoint — le routage se fait automatiquement par <code className="bg-gray-100 px-1 rounded">phone_number_id</code>.
-        </p>
-      </div>
-
-      {/* Statut */}
-      <div className={`rounded-xl border-2 p-4 flex items-start gap-3 ${webhookInfo?.verify_token_configured ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-        <span className="text-2xl">{webhookInfo?.verify_token_configured ? '✅' : '❌'}</span>
+    <div className="max-w-7xl space-y-6 bg-white rounded-xl p-6">
+      <div className="flex justify-between items-center">
         <div>
-          <p className={`font-semibold text-sm ${webhookInfo?.verify_token_configured ? 'text-green-800' : 'text-red-800'}`}>
-            {webhookInfo?.verify_token_configured
-              ? 'WHATSAPP_WEBHOOK_VERIFY_TOKEN configuré — le backend accepte les vérifications Meta'
-              : 'WHATSAPP_WEBHOOK_VERIFY_TOKEN manquant dans backend/.env'}
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">📊 Dashboard WhatsApp Multi-Tenant</h1>
+          <p className="text-sm text-gray-500">
+            Monitoring et analytics pour toutes les entreprises
           </p>
-          {!webhookInfo?.verify_token_configured && (
-            <p className="text-xs text-red-600 mt-1">
-              Ajoute <code className="bg-red-100 px-1 rounded">WHATSAPP_WEBHOOK_VERIFY_TOKEN=mon_secret_unique</code> dans <code className="bg-red-100 px-1 rounded">backend/.env</code> et redémarre le serveur.
-            </p>
-          )}
         </div>
+        <button 
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+        >
+          {refreshing ? '⏳' : '🔄'} Rafraîchir
+        </button>
       </div>
 
-      {/* Infos à copier */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
-        <h2 className="font-semibold text-gray-900">📋 Valeurs à saisir sur Meta for Developers</h2>
-
-        <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">URL du Webhook</label>
-          <div className="mt-1 flex items-center gap-2">
-            <code className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono text-gray-800 break-all">
-              {webhookInfo?.webhook_url || '—'}
-            </code>
-            <button onClick={() => webhookInfo && copy(webhookInfo.webhook_url, 'url')}
-              className="flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-lg text-xs font-medium">
-              {copied === 'url' ? '✓ Copié' : 'Copier'}
-            </button>
-          </div>
-          <p className="text-xs text-amber-600 mt-1">⚠️ Meta exige HTTPS. Utilise Cloudflare Tunnel ou ngrok pour exposer le backend.</p>
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Token de vérification (Verify Token)</label>
-          <div className="mt-1 flex items-center gap-2">
-            <code className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono text-gray-800">
-              {webhookInfo?.verify_token || '—'}
-            </code>
-            <span className="text-xs text-gray-400 flex-shrink-0">(masqué)</span>
-          </div>
-          <p className="text-xs text-gray-400 mt-1">Défini dans <code className="bg-gray-100 px-1 rounded">backend/.env</code> → <code className="bg-gray-100 px-1 rounded">WHATSAPP_WEBHOOK_VERIFY_TOKEN</code></p>
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Événements à activer (Webhook Fields)</label>
-          <div className="mt-1 flex gap-2">
-            {(webhookInfo?.events_to_subscribe || ['messages', 'message_status']).map(e => (
-              <span key={e} className="bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full text-xs font-mono">{e}</span>
-            ))}
-          </div>
-        </div>
+      {/* Tabs */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('webhooks')}
+            className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'webhooks'
+                ? 'border-green-500 text-green-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            📊 Webhooks
+          </button>
+          <button
+            onClick={() => setActiveTab('performance')}
+            className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'performance'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            📈 Performance
+          </button>
+        </nav>
       </div>
 
-      {/* Guide */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h2 className="font-semibold text-gray-900 mb-4">🧭 Étapes sur Meta for Developers</h2>
-        <ol className="space-y-4">
-          {[
-            { n:'1', title:'Créer l\'app Meta', body:<span>Sur <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">developers.facebook.com/apps</a> → <strong>Créer une application</strong> → type <strong>Business</strong> → ajouter le produit <strong>WhatsApp</strong>.</span> },
-            { n:'2', title:'Configurer le Webhook', body:<span><strong>WhatsApp → Configuration → Webhook → Modifier</strong><br/>Coller l'<strong>URL</strong> et le <strong>Token de vérification</strong> ci-dessus → <strong>"Vérifier et enregistrer"</strong>.</span> },
-            { n:'3', title:'S\'abonner aux événements', body:<span>Dans la liste des champs Webhook → activer <code className="bg-gray-100 px-1 rounded text-xs">messages</code> et <code className="bg-gray-100 px-1 rounded text-xs">message_status</code> → <strong>"S'abonner"</strong>.</span> },
-            { n:'4', title:'Chaque admin d\'entreprise', body:<span>Va dans <strong>WhatsApp → Connexion</strong> pour saisir son <strong>Phone Number ID</strong> et son <strong>Access Token</strong> permanent. Le système route automatiquement les messages vers la bonne entreprise.</span> },
-          ].map(step => (
-            <li key={step.n} className="flex gap-3">
-              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">{step.n}</span>
-              <div>
-                <p className="text-sm font-semibold text-gray-800">{step.title}</p>
-                <p className="text-sm text-gray-600 mt-0.5">{step.body}</p>
+      {/* Webhooks Tab */}
+      {activeTab === 'webhooks' && (
+        <>
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Entreprises</p>
+              <p className="text-2xl font-bold text-gray-900">{webhookStats.length}</p>
+              <p className="text-xs text-green-600">{configuredCount} configurées</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Webhooks Actifs</p>
+              <p className="text-2xl font-bold text-green-600">{activeCount}</p>
+              <p className="text-xs text-gray-500">Messages &lt; 5 min</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Messages Entrants</p>
+              <p className="text-2xl font-bold text-blue-600">{totalIncoming}</p>
+              <p className="text-xs text-gray-500">24 dernières heures</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Messages Sortants</p>
+              <p className="text-2xl font-bold text-indigo-600">{totalOutgoing}</p>
+              <p className="text-xs text-gray-500">24 dernières heures</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Échecs</p>
+              <p className="text-2xl font-bold text-red-600">{totalFailed}</p>
+              <p className="text-xs text-gray-500">24 dernières heures</p>
+            </div>
+          </div>
+
+          {/* Stats Table */}
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-200 bg-gray-50">
+              <h2 className="font-semibold text-gray-900">État par Entreprise</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {['Entreprise', 'État Webhook', 'API Meta', 'Messages (24h)', 'Dernier Réception', 'URL Webhook'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-100">
+                  {webhookStats.map(stat => (
+                    <tr key={stat.company_id} className="hover:bg-gray-50">
+                      <td className="px-4 py-4">
+                        <p className="text-sm font-medium text-gray-900">{stat.company_name}</p>
+                        <p className="text-xs text-gray-500 font-mono">{stat.company_id.slice(0, 8)}...</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        {getStatusBadge(stat.status)}
+                      </td>
+                      <td className="px-4 py-4">
+                        {getApiStatusBadge(stat.api_connection_status)}
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex gap-2 text-xs">
+                          <span className="bg-blue-50 text-blue-700 px- py-1 rounded">↘️ {stat.messages_incoming_24h}</span>
+                          <span className="bg-indigo-50 text-indigo-700 px- py-1 rounded">↗️ {stat.messages_outgoing_24h}</span>
+                          {stat.messages_failed_24h > 0 && (
+                            <span className="bg-red-50 text-red-700 px- py-1 rounded">❌ {stat.messages_failed_24h}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-xs text-gray-600">
+                        {formatTimeAgo(stat.last_message_received)}
+                      </td>
+                      <td className="px-4 py-4">
+                        {stat.webhook_url ? (
+                          <code className="text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                            {stat.webhook_url.slice(0, 40)}...
+                          </code>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div className="bg-gray-50 rounded-xl border border-gray-200 p-4">
+            <h3 className="font-semibold text-gray-900 text-sm mb-3">Légende des États</h3>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-green-500"></span>
+                <span className="text-gray-600"><strong>Actif:</strong> Messages &lt; 5 min</span>
               </div>
-            </li>
-          ))}
-        </ol>
-      </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
+                <span className="text-gray-600"><strong>Inactif:</strong> 5-30 min</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-red-500"></span>
+                <span className="text-gray-600"><strong>Mort:</strong> &gt; 30 min</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-gray-400"></span>
+                <span className="text-gray-600"><strong>Aucun message:</strong> Jamais reçu</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-gray-300"></span>
+                <span className="text-gray-600"><strong>Non configuré:</strong> Pas de channel</span>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
-      {/* HTTPS */}
-      <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
-        <p className="font-semibold text-indigo-900 text-sm mb-1">💡 Exposer le backend en HTTPS (requis par Meta)</p>
-        <code className="block bg-indigo-100 rounded-lg px-3 py-2 mt-1 text-xs font-mono text-indigo-800">cloudflared tunnel --url http://localhost:8000</code>
-        <p className="text-xs text-indigo-700 mt-1">L'URL générée (<code>https://xxx.trycloudflare.com</code>) remplace la base de l'URL webhook ci-dessus.</p>
-      </div>
+      {/* Performance Tab */}
+      {activeTab === 'performance' && (
+        <>
+          {/* Period Selector */}
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-600">Période :</span>
+            <div className="flex gap-2">
+              {[7, 30, 90].map(d => (
+                <button
+                  key={d}
+                  onClick={() => setDaysPeriod(d)}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium ${
+                    daysPeriod === d
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {d}j
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Messages Entrants</p>
+              <p className="text-2xl font-bold text-blue-600">{totalPerfIncoming}</p>
+              <p className="text-xs text-gray-500">Derniers {daysPeriod} jours</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Messages Sortants</p>
+              <p className="text-2xl font-bold text-indigo-600">{totalPerfOutgoing}</p>
+              <p className="text-xs text-gray-500">Derniers {daysPeriod} jours</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Échecs</p>
+              <p className="text-2xl font-bold text-red-600">{totalPerfFailed}</p>
+              <p className="text-xs text-gray-500">Derniers {daysPeriod} jours</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Contacts Totaux</p>
+              <p className="text-2xl font-bold text-purple-600">{totalContacts}</p>
+              <p className="text-xs text-gray-500">Base de contacts</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Nouveaux Contacts</p>
+              <p className="text-2xl font-bold text-green-600">{totalNewContacts}</p>
+              <p className="text-xs text-gray-500">Derniers {daysPeriod} jours</p>
+            </div>
+          </div>
+
+          {/* Secondary KPIs */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Taux de Succès</p>
+              <p className="text-2xl font-bold text-green-600">{avgSuccessRate.toFixed(1)}%</p>
+              <p className="text-xs text-gray-500">Moyenne global</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Entreprises</p>
+              <p className="text-2xl font-bold text-gray-900">{performanceStats.length}</p>
+              <p className="text-xs text-gray-500">Avec données</p>
+            </div>
+          </div>
+
+          {/* Performance Table */}
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-200 bg-gray-50">
+              <h2 className="font-semibold text-gray-900">Performance par Entreprise</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {['Entreprise', 'Entrants', 'Sortants', 'Échecs', 'Taux Succès', 'Contacts Totaux', 'Nouveaux Contacts', 'Temps Réponse Moy'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-100">
+                  {performanceStats.map(stat => (
+                    <tr key={stat.company_id} className="hover:bg-gray-50">
+                      <td className="px-4 py-4">
+                        <p className="text-sm font-medium text-gray-900">{stat.company_name}</p>
+                        <p className="text-xs text-gray-500 font-mono">{stat.company_id.slice(0, 8)}...</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="text-sm font-semibold text-blue-600">{stat.total_messages_incoming}</span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="text-sm font-semibold text-indigo-600">{stat.total_messages_outgoing}</span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className={`text-sm font-semibold ${stat.total_messages_failed > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          {stat.total_messages_failed}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className={`text-sm font-semibold ${stat.success_rate >= 95 ? 'text-green-600' : stat.success_rate >= 80 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          {stat.success_rate.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="text-sm font-semibold text-purple-600">{stat.total_contacts}</span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className={`text-sm font-semibold ${stat.new_contacts_period > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                          +{stat.new_contacts_period}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        {stat.avg_response_time_seconds ? (
+                          <span className="text-sm text-gray-600">{stat.avg_response_time_seconds.toFixed(1)}s</span>
+                        ) : (
+                          <span className="text-sm text-gray-400">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Daily Trend Chart */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <h2 className="font-semibold text-gray-900 mb-4">📈 Évolution Quotidienne</h2>
+            
+            {/* Chart Type Toggle */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setChartType('line')}
+                className={`px-3 py-1 rounded-lg text-sm font-medium ${
+                  chartType === 'line'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Ligne
+              </button>
+              <button
+                onClick={() => setChartType('bar')}
+                className={`px-3 py-1 rounded-lg text-sm font-medium ${
+                  chartType === 'bar'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Barres
+              </button>
+            </div>
+
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                {chartType === 'line' ? (
+                  <LineChart data={aggregatedDailyStats}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 12 }}
+                      stroke="#6b7280"
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      stroke="#6b7280"
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#fff', 
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Legend />
+                    <Line 
+                      type="monotone" 
+                      dataKey="incoming" 
+                      stroke="#3b82f6" 
+                      strokeWidth={2}
+                      name="Messages Entrants"
+                      dot={{ r: 4 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="outgoing" 
+                      stroke="#6366f1" 
+                      strokeWidth={2}
+                      name="Messages Sortants"
+                      dot={{ r: 4 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="newContacts" 
+                      stroke="#10b981" 
+                      strokeWidth={2}
+                      name="Nouveaux Contacts"
+                      dot={{ r: 4 }}
+                    />
+                  </LineChart>
+                ) : (
+                  <BarChart data={aggregatedDailyStats}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 12 }}
+                      stroke="#6b7280"
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      stroke="#6b7280"
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#fff', 
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="incoming" fill="#3b82f6" name="Messages Entrants" />
+                    <Bar dataKey="outgoing" fill="#6366f1" name="Messages Sortants" />
+                    <Bar dataKey="newContacts" fill="#10b981" name="Nouveaux Contacts" />
+                  </BarChart>
+                )}
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 export default function WhatsAppPage() {
+  const { user } = useAuth();
+
+  if (user?.role === 'SUPER_ADMIN') {
+    return (
+      <AppLayout>
+        <SuperAdminWebhookPanel />
+      </AppLayout>
+    );
+  }
+
   const [messages, setMessages]   = useState<WhatsAppMessage[]>([]);
   const [totalMessages, setTotalMessages] = useState(0);
   const [templates, setTemplates] = useState<WhatsAppTemplate[]>([]);
@@ -246,8 +613,10 @@ export default function WhatsAppPage() {
   const [success, setSuccess]     = useState('');
   const [activeTab, setActiveTab] = useHashTab<'connexion' | 'messages' | 'templates'>('connexion');
   const [submitting, setSubmitting] = useState(false);
-  const [credForm, setCredForm]   = useState({ phone_number_id: '', access_token: '', waba_id: '', display_phone_number: '' });
-  const { user } = useAuth();
+  const [credForm, setCredForm]   = useState({ 
+    phone_number_id: '', access_token: '', waba_id: '', display_phone_number: '',
+    meta_app_id: '', meta_app_secret: '', meta_business_id: '', webhook_verify_token: ''
+  });
 
   useEffect(() => {
     if (user) {
@@ -259,10 +628,18 @@ export default function WhatsAppPage() {
 
   const fetchCredentials = async () => {
     try {
-      const r = await api.get('/channels/whatsapp/credentials');
+      const r = await api.get('/whatsapp/config');
       setCredentials(r.data);
       if (r.data.configured) {
-        setCredForm(f => ({ ...f, phone_number_id: r.data.phone_number_id || '', waba_id: r.data.waba_id || '', display_phone_number: r.data.display_phone_number || '' }));
+        setCredForm(f => ({ 
+          ...f, 
+          phone_number_id: r.data.phone_number_id || '', 
+          waba_id: r.data.waba_id || '', 
+          display_phone_number: r.data.display_phone_number || '',
+          meta_app_id: r.data.meta_app_id || '',
+          meta_business_id: r.data.meta_business_id || '',
+          webhook_verify_token: r.data.webhook_verify_token || ''
+        }));
       }
     } catch {} finally { setLoading(false); }
   };
@@ -271,9 +648,16 @@ export default function WhatsAppPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const r = await api.post('/channels/whatsapp/credentials', credForm);
-      setSuccess('Connexion WhatsApp enregistrée !');
-      setCredentials({ configured: true, ...r.data });
+      const r = await api.put('/whatsapp/config', {
+        phone_number_id: credForm.phone_number_id || undefined,
+        access_token: credForm.access_token || undefined,
+        meta_app_id: credForm.meta_app_id || undefined,
+        meta_app_secret: credForm.meta_app_secret || undefined,
+        meta_business_id: credForm.meta_business_id || undefined,
+        webhook_verify_token: credForm.webhook_verify_token || undefined
+      });
+      setSuccess('Configuration WhatsApp enregistrée !');
+      fetchCredentials();
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Erreur sauvegarde');
     } finally { setSubmitting(false); }
@@ -314,14 +698,6 @@ export default function WhatsAppPage() {
       setError(err.response?.data?.detail || 'Erreur envoi');
     } finally { setSubmitting(false); }
   };
-
-  if (user?.role === 'SUPER_ADMIN') {
-    return (
-      <AppLayout>
-        <SuperAdminWebhookPanel />
-      </AppLayout>
-    );
-  }
 
   if (loading) return (
     <AppLayout><div className="flex items-center justify-center h-64 text-gray-400">Chargement...</div></AppLayout>
@@ -371,31 +747,50 @@ export default function WhatsAppPage() {
             {credentials?.configured && (
               <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
                 <span className="text-2xl">✅</span>
-                <div>
-                  <p className="font-semibold text-green-800 text-sm">WhatsApp connecté</p>
+                <div className="flex-1">
+                  <p className="font-semibold text-green-800 text-sm">WhatsApp configuré</p>
                   <p className="text-xs text-green-700 mt-0.5">Numéro : <span className="font-mono">{credentials.display_phone_number || '—'}</span></p>
                   <p className="text-xs text-green-700">Phone Number ID : <span className="font-mono">{credentials.phone_number_id}</span></p>
+                  <p className="text-xs text-green-700">Meta App ID : <span className="font-mono">{credentials.meta_app_id || '—'}</span></p>
+                  <p className="text-xs text-green-700">Meta Business ID : <span className="font-mono">{credentials.meta_business_id || '—'}</span></p>
                   <p className="text-xs text-green-700">Token : <span className="font-mono">{credentials.access_token_masked}</span></p>
+                  {credentials.webhook_url && (
+                    <p className="text-xs text-green-700 mt-2">Webhook URL : <span className="font-mono text-xs">{credentials.webhook_url}</span></p>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* ── Option 1 : Embedded Signup (recommandé) ── */}
-            <EmbeddedSignupButton
-              onSuccess={(data) => {
-                setSuccess(`WhatsApp connecté ! Numéro : ${data.display_phone_number || data.phone_number_id}`);
-                fetchCredentials();
-              }}
-              onError={(msg) => setError(msg)}
-            />
-
-            {/* ── Option 2 : Saisie manuelle ── */}
+            {/* ── Configuration manuelle (Multi-tenant) ── */}
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-base font-semibold text-gray-900 mb-1">✏️ Saisie manuelle</h2>
+              <h2 className="text-base font-semibold text-gray-900 mb-1">✏️ Configuration manuelle (Multi-tenant)</h2>
               <p className="text-xs text-gray-500 mb-5">
-                Si vous avez déjà votre <strong>Phone Number ID</strong> et votre <strong>Access Token permanent</strong>, entrez-les directement.
+                Configurez vos propres identifiants Meta pour votre entreprise. Chaque tenant a sa propre configuration.
               </p>
               <form onSubmit={saveCredentials} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Meta App ID <span className="text-red-500">*</span></label>
+                    <input value={credForm.meta_app_id}
+                      onChange={e => setCredForm({...credForm, meta_app_id: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-green-500"
+                      placeholder="1512138164296574" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Meta Business ID <span className="text-red-500">*</span></label>
+                    <input value={credForm.meta_business_id}
+                      onChange={e => setCredForm({...credForm, meta_business_id: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-green-500"
+                      placeholder="232803093077664" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Meta App Secret <span className="text-red-500">*</span></label>
+                  <input type="password" value={credForm.meta_app_secret}
+                    onChange={e => setCredForm({...credForm, meta_app_secret: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-green-500"
+                    placeholder="22bc8b15890777fc545593241396fb46" />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number ID <span className="text-red-500">*</span></label>
                   <input required value={credForm.phone_number_id}
@@ -424,9 +819,17 @@ export default function WhatsAppPage() {
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                     placeholder="+237 6 12 34 56 78" />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Webhook Verify Token <span className="text-gray-400 font-normal">(optionnel)</span></label>
+                  <input value={credForm.webhook_verify_token}
+                    onChange={e => setCredForm({...credForm, webhook_verify_token: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono"
+                    placeholder="verify_token_123" />
+                  <p className="text-xs text-gray-500 mt-1">Token pour valider le webhook sur Meta</p>
+                </div>
                 <button type="submit" disabled={submitting}
                   className="w-full bg-green-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50">
-                  {submitting ? 'Enregistrement...' : credentials?.configured ? '💾 Mettre à jour' : '� Enregistrer'}
+                  {submitting ? 'Enregistrement...' : credentials?.configured ? '💾 Mettre à jour' : '💾 Enregistrer'}
                 </button>
               </form>
             </div>

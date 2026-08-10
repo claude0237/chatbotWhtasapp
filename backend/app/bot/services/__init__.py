@@ -218,9 +218,18 @@ class BotConfigurationService:
         avatar_url: Optional[str] = None,
         native_rules: Optional[Dict[str, Any]] = None,
         followup_timeout_minutes: int = 60,
-        followup_max_retries: int = 3
+        followup_max_retries: int = 3,
+        ml_enabled: Optional[bool] = None,
+        ml_provider: Optional[str] = None,
+        ml_model: Optional[str] = None,
+        ml_temperature: Optional[str] = None,
+        ml_max_tokens: Optional[int] = None,
+        fallback_strategy: Optional[str] = None,
+        confidence_threshold: Optional[str] = None
     ) -> BotConfiguration:
         """Create a new bot configuration"""
+        from app.bot.models import MLProvider, FallbackStrategy
+        
         config = BotConfiguration(
             company_id=company_id,
             bot_type=bot_type,
@@ -234,7 +243,14 @@ class BotConfigurationService:
             avatar_url=avatar_url,
             native_rules=native_rules,
             followup_timeout_minutes=followup_timeout_minutes,
-            followup_max_retries=followup_max_retries
+            followup_max_retries=followup_max_retries,
+            ml_enabled=ml_enabled if ml_enabled is not None else (bot_type in [BotType.ML, BotType.HYBRID]),
+            ml_provider=MLProvider(ml_provider) if ml_provider else None,
+            ml_model=ml_model,
+            ml_temperature=ml_temperature,
+            ml_max_tokens=ml_max_tokens,
+            fallback_strategy=FallbackStrategy(fallback_strategy) if fallback_strategy else None,
+            confidence_threshold=confidence_threshold
         )
         return await self.repository.create(config)
     
@@ -252,9 +268,18 @@ class BotConfigurationService:
         native_rules: Optional[Dict[str, Any]] = None,
         bot_type: Optional[BotType] = None,
         followup_timeout_minutes: Optional[int] = None,
-        followup_max_retries: Optional[int] = None
+        followup_max_retries: Optional[int] = None,
+        ml_enabled: Optional[bool] = None,
+        ml_provider: Optional[str] = None,
+        ml_model: Optional[str] = None,
+        ml_temperature: Optional[str] = None,
+        ml_max_tokens: Optional[int] = None,
+        fallback_strategy: Optional[str] = None,
+        confidence_threshold: Optional[str] = None
     ) -> Optional[BotConfiguration]:
         """Update bot configuration"""
+        from app.bot.models import MLProvider, FallbackStrategy
+        
         config = await self.repository.get_by_id(config_id)
         if config:
             if name is not None:
@@ -281,6 +306,20 @@ class BotConfigurationService:
                 config.followup_timeout_minutes = followup_timeout_minutes
             if followup_max_retries is not None:
                 config.followup_max_retries = followup_max_retries
+            if ml_enabled is not None:
+                config.ml_enabled = ml_enabled
+            if ml_provider is not None and ml_provider:
+                config.ml_provider = MLProvider(ml_provider)
+            if ml_model is not None:
+                config.ml_model = ml_model
+            if ml_temperature is not None:
+                config.ml_temperature = ml_temperature
+            if ml_max_tokens is not None:
+                config.ml_max_tokens = ml_max_tokens
+            if fallback_strategy is not None and fallback_strategy:
+                config.fallback_strategy = FallbackStrategy(fallback_strategy)
+            if confidence_threshold is not None:
+                config.confidence_threshold = confidence_threshold
             return await self.repository.update(config)
         return None
     

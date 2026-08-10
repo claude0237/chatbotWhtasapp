@@ -66,7 +66,19 @@ class UserService:
     
     async def get_all_non_superadmin(self, skip: int = 0, limit: int = 500) -> List[User]:
         """Get all users across all companies (SUPER_ADMIN view, excludes SUPER_ADMIN accounts)"""
-        return await self.user_repository.get_all_non_superadmin(skip, limit)
+        users = await self.user_repository.get_all_non_superadmin(skip, limit)
+        # Load company names for each user
+        for user in users:
+            if user.company_id:
+                from sqlalchemy import select
+                from app.companies.models import Company
+                result = await self.db.execute(
+                    select(Company.name).where(Company.id == user.company_id)
+                )
+                company_name = result.scalar_one_or_none()
+                # Add company_name as a dynamic attribute (not in model)
+                setattr(user, 'company_name', company_name)
+        return users
 
     async def get_active_users(self, company_id: UUID) -> List[User]:
         """Get all active users for a company"""

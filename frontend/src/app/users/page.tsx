@@ -18,6 +18,7 @@ interface UserItem {
   role: string;
   is_active: boolean;
   company_id: string;
+  company_name?: string;
   created_at: string;
 }
 
@@ -176,7 +177,7 @@ export default function UsersPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {['Nom', 'Email', 'Rôle', 'Statut', 'Créé le', 'Actions'].map(h => (
+                  {['Nom', 'Email', 'Entreprise', 'Rôle', 'Statut', 'Créé le', 'Actions'].map(h => (
                     <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -191,6 +192,11 @@ export default function UsersPage() {
                         {isSelf && <span className="text-xs text-green-600">(vous)</span>}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">{u.email}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {u.company_name || (
+                          <span className="text-gray-400 italic">Non assigné</span>
+                        )}
+                      </td>
                       <td className="px-6 py-4">
                         <select
                           value={u.role}

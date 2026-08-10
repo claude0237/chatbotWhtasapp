@@ -7,6 +7,7 @@ from app.ml.rag import RAGEngine
 from app.ml.llm import get_llm_provider, LLMProvider
 from app.bot.models import BotConfiguration, MLProvider, FallbackStrategy
 from app.bot.repositories import BotConfigurationRepository
+from app.config import settings
 
 
 class MLEngine:
@@ -30,7 +31,9 @@ class MLEngine:
             provider_type = config.ml_provider.value if hasattr(config.ml_provider, 'value') else str(config.ml_provider)
             self.llm_provider = get_llm_provider(provider_type)
         else:
-            self.llm_provider = get_llm_provider("openai")  # Default
+            # Use default provider from settings (.env)
+            provider_type = settings.ml_default_provider
+            self.llm_provider = get_llm_provider(provider_type)
         
         # Initialize RAG engine
         self.rag_engine = RAGEngine(self.db, self.llm_provider)

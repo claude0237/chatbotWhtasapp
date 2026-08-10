@@ -67,6 +67,7 @@ class UserResponse(UserBase):
     """Schema for user response"""
     id: UUID
     company_id: UUID
+    company_name: Optional[str] = None
     role: UserRoleEnum
     is_active: bool
     is_verified: bool

@@ -1,10 +1,13 @@
 """BotEngine — processes incoming WhatsApp messages and returns the appropriate response"""
 import re
+import logging
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+
+logger = logging.getLogger(__name__)
 
 # Sentinel prefix embedded in the return value when a handoff step fires.
 # Format: "__HANDOFF__:<message to send to client>"
@@ -62,6 +65,8 @@ class BotEngine:
         company = company_result.scalar_one_or_none()
         
         # ML is only available for non-FREE plans
+        # Superadmin enables ML at company level (company.ml_enabled)
+        # Company admin then chooses bot mode: NATIVE, ML, or HYBRID
         ml_enabled = company.ml_enabled if company else False
         can_use_ml = ml_enabled and company and company.subscription_plan != SubscriptionPlan.FREE
 
@@ -116,14 +121,18 @@ class BotEngine:
                     confidence_threshold=settings.ml_default_confidence_threshold
                 )
                 
+                logger.info(f"ML result: {ml_result}")
+                
                 # Check confidence threshold
                 if ml_result.get("confidence", 0) >= settings.ml_default_confidence_threshold:
                     return ml_result.get("response", native_response)
                 else:
                     # Fallback to native if confidence is low
+                    logger.info(f"ML confidence too low: {ml_result.get('confidence', 0)} < {settings.ml_default_confidence_threshold}")
                     return native_response
-            except Exception:
+            except Exception as e:
                 # If ML fails, fall back to native
+                logger.error(f"ML processing failed: {str(e)}")
                 pass
 
         # ── 5. Native Fallback ──────────────────────────────────────────────

@@ -336,6 +336,8 @@ class MistralLLMProvider(LLMProvider):
 # Factory function to get LLM provider
 def get_llm_provider(provider_type: str) -> LLMProvider:
     """Get LLM provider by type"""
+    provider_type = provider_type.lower()
+    
     if provider_type == "openai":
         return OpenAILLMProvider(
             api_key=settings.openai_api_key,

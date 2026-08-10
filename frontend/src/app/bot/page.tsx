@@ -13,6 +13,9 @@ interface BotConfiguration {
   closing_message: string | null; unknown_message: string | null;
   language: string; timezone: string; avatar_url: string | null;
   native_rules: object | null; business_hours: Record<string, {open: string; close: string} | null> | null;
+  ml_enabled: boolean | null; ml_provider: string | null; ml_model: string | null;
+  ml_temperature: string | null; ml_max_tokens: number | null;
+  fallback_strategy: string | null; confidence_threshold: string | null;
   created_at: string; updated_at: string;
 }
 interface BotScenario {
@@ -78,7 +81,7 @@ export default function BotPage() {
   const [editingScenario,   setEditingScenario]   = useState<BotScenario | null>(null);
   const [editingKeyword,    setEditingKeyword]    = useState<BotKeyword | null>(null);
 
-  const [configForm,   setConfigForm]   = useState({ name: '', welcome_message: '', away_message: '', closing_message: '', unknown_message: '', language: 'fr', timezone: 'Africa/Douala', bot_type: 'NATIVE', followup_timeout_minutes: 60, followup_max_retries: 3, business_hours: null as Record<string, {open: string; close: string} | null> | null });
+  const [configForm,   setConfigForm]   = useState({ name: '', welcome_message: '', away_message: '', closing_message: '', unknown_message: '', language: 'fr', timezone: 'Africa/Douala', bot_type: 'NATIVE', followup_timeout_minutes: 60, followup_max_retries: 3, business_hours: null as Record<string, {open: string; close: string} | null> | null, ml_enabled: false, ml_provider: '', ml_model: '', ml_temperature: '', ml_max_tokens: 500, fallback_strategy: '', confidence_threshold: '' });
   const [companyMLEnabled, setCompanyMLEnabled] = useState(false);
   const [companyPlan, setCompanyPlan] = useState('FREE');
   const [scenarioForm, setScenarioForm] = useState({ name: '', trigger_keyword: '', is_active: true });
@@ -469,7 +472,7 @@ export default function BotPage() {
               </button>
             )}
             {!config && (
-              <button onClick={() => { setConfigForm({ name: '', welcome_message: 'Bonjour ! Comment puis-je vous aider ?', away_message: '', closing_message: 'Merci, à bientôt !', unknown_message: 'Je ne comprends pas. Souhaitez-vous parler à un agent ?', language: 'fr', timezone: 'Africa/Douala', bot_type: 'NATIVE', followup_timeout_minutes: 60, followup_max_retries: 3, business_hours: null }); setShowConfigModal(true); }}
+              <button onClick={() => { setConfigForm({ name: '', welcome_message: 'Bonjour ! Comment puis-je vous aider ?', away_message: '', closing_message: 'Merci, à bientôt !', unknown_message: 'Je ne comprends pas. Souhaitez-vous parler à un agent ?', language: 'fr', timezone: 'Africa/Douala', bot_type: 'NATIVE', followup_timeout_minutes: 60, followup_max_retries: 3, business_hours: null, ml_enabled: false, ml_provider: '', ml_model: '', ml_temperature: '', ml_max_tokens: 500, fallback_strategy: '', confidence_threshold: '' }); setShowConfigModal(true); }}
                 className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-medium">
                 + Créer le bot
               </button>
@@ -509,7 +512,7 @@ export default function BotPage() {
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <div className="flex justify-between items-center mb-5">
                   <h2 className="text-lg font-semibold text-gray-900">Configuration générale</h2>
-                  <button onClick={() => { setConfigForm({ name: config.name, welcome_message: config.welcome_message || '', away_message: config.away_message || '', closing_message: config.closing_message || '', unknown_message: config.unknown_message || '', language: config.language, timezone: config.timezone, bot_type: config.bot_type || 'NATIVE', followup_timeout_minutes: (config as any).followup_timeout_minutes ?? 60, followup_max_retries: (config as any).followup_max_retries ?? 3, business_hours: config.business_hours || null }); setShowConfigModal(true); }}
+                  <button onClick={() => { setConfigForm({ name: config.name, welcome_message: config.welcome_message || '', away_message: config.away_message || '', closing_message: config.closing_message || '', unknown_message: config.unknown_message || '', language: config.language, timezone: config.timezone, bot_type: config.bot_type || 'NATIVE', followup_timeout_minutes: (config as any).followup_timeout_minutes ?? 60, followup_max_retries: (config as any).followup_max_retries ?? 3, business_hours: config.business_hours || null, ml_enabled: config.ml_enabled || false, ml_provider: config.ml_provider || '', ml_model: config.ml_model || '', ml_temperature: config.ml_temperature || '', ml_max_tokens: config.ml_max_tokens || 500, fallback_strategy: config.fallback_strategy || '', confidence_threshold: config.confidence_threshold || '' }); setShowConfigModal(true); }}
                     className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 text-sm font-medium">
                     ✏️ Modifier
                   </button>

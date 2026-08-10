@@ -187,6 +187,13 @@ async def get_bot_config(
         "avatar_url": config.avatar_url,
         "native_rules": config.native_rules,
         "business_hours": config.business_hours,
+        "ml_enabled": config.ml_enabled,
+        "ml_provider": config.ml_provider.value if config.ml_provider else None,
+        "ml_model": config.ml_model,
+        "ml_temperature": config.ml_temperature,
+        "ml_max_tokens": config.ml_max_tokens,
+        "fallback_strategy": config.fallback_strategy.value if config.fallback_strategy else None,
+        "confidence_threshold": config.confidence_threshold,
         "followup_timeout_minutes": config.followup_timeout_minutes,
         "followup_max_retries": config.followup_max_retries,
         "created_at": config.created_at.isoformat(),
@@ -217,7 +224,14 @@ async def create_bot_config(
         avatar_url=request.avatar_url,
         native_rules=request.native_rules,
         followup_timeout_minutes=request.followup_timeout_minutes,
-        followup_max_retries=request.followup_max_retries
+        followup_max_retries=request.followup_max_retries,
+        ml_enabled=request.ml_enabled,
+        ml_provider=request.ml_provider,
+        ml_model=request.ml_model,
+        ml_temperature=request.ml_temperature,
+        ml_max_tokens=request.ml_max_tokens,
+        fallback_strategy=request.fallback_strategy,
+        confidence_threshold=request.confidence_threshold
     )
     # Save business_hours directly
     if request.business_hours is not None:
@@ -240,6 +254,13 @@ async def create_bot_config(
         "avatar_url": config.avatar_url,
         "native_rules": config.native_rules,
         "business_hours": config.business_hours,
+        "ml_enabled": config.ml_enabled,
+        "ml_provider": config.ml_provider.value if config.ml_provider else None,
+        "ml_model": config.ml_model,
+        "ml_temperature": config.ml_temperature,
+        "ml_max_tokens": config.ml_max_tokens,
+        "fallback_strategy": config.fallback_strategy.value if config.fallback_strategy else None,
+        "confidence_threshold": config.confidence_threshold,
         "followup_timeout_minutes": config.followup_timeout_minutes,
         "followup_max_retries": config.followup_max_retries,
         "created_at": config.created_at.isoformat(),
@@ -277,7 +298,14 @@ async def update_bot_config(
         native_rules=request.native_rules,
         bot_type=request.bot_type,
         followup_timeout_minutes=request.followup_timeout_minutes,
-        followup_max_retries=request.followup_max_retries
+        followup_max_retries=request.followup_max_retries,
+        ml_enabled=request.ml_enabled,
+        ml_provider=request.ml_provider,
+        ml_model=request.ml_model,
+        ml_temperature=request.ml_temperature,
+        ml_max_tokens=request.ml_max_tokens,
+        fallback_strategy=request.fallback_strategy,
+        confidence_threshold=request.confidence_threshold
     )
     # Save business_hours directly
     if request.business_hours is not None:
@@ -300,6 +328,13 @@ async def update_bot_config(
         "avatar_url": updated_config.avatar_url,
         "native_rules": updated_config.native_rules,
         "business_hours": updated_config.business_hours,
+        "ml_enabled": updated_config.ml_enabled,
+        "ml_provider": updated_config.ml_provider.value if updated_config.ml_provider else None,
+        "ml_model": updated_config.ml_model,
+        "ml_temperature": updated_config.ml_temperature,
+        "ml_max_tokens": updated_config.ml_max_tokens,
+        "fallback_strategy": updated_config.fallback_strategy.value if updated_config.fallback_strategy else None,
+        "confidence_threshold": updated_config.confidence_threshold,
         "followup_timeout_minutes": updated_config.followup_timeout_minutes,
         "followup_max_retries": updated_config.followup_max_retries,
         "created_at": updated_config.created_at.isoformat(),

@@ -31,7 +31,7 @@ class WhatsAppService:
         self.base_url = f"https://graph.facebook.com/{settings.whatsapp_api_version}"
 
     async def _get_company_credentials(self, company_id: UUID) -> dict:
-        """Fetch WhatsApp credentials for a specific company from ChannelCredential table"""
+        """Fetch ALL WhatsApp credentials for a specific company from ChannelCredential table"""
         channel = await self.channel_repository.get_by_type(company_id, ChannelType.WHATSAPP)
         if not channel:
             raise ValueError(f"No WhatsApp channel configured for company {company_id}")
@@ -42,22 +42,43 @@ class WhatsAppService:
         credentials = await self.channel_credential_repository.get_by_channel_id(channel.id)
         cred_map = {c.credential_type: c.encrypted_value for c in credentials}
 
+        # Get configuration values
+        meta_app_id = config_map.get("meta_app_id")
+        meta_business_id = config_map.get("meta_business_id")
         phone_number_id = config_map.get("phone_number_id")
+        webhook_verify_token = config_map.get("webhook_verify_token")
+
+        # Decrypt credentials
+        raw_app_secret = cred_map.get("META_APP_SECRET")
         raw_token = cred_map.get("ACCESS_TOKEN")
+        
+        app_secret = None
+        if raw_app_secret:
+            try:
+                app_secret = decrypt_credential(raw_app_secret)
+            except ValueError:
+                app_secret = raw_app_secret
+        
+        access_token = None
         if raw_token:
             try:
                 access_token = decrypt_credential(raw_token)
             except ValueError:
                 access_token = raw_token
-        else:
-            access_token = None
 
         if not phone_number_id:
             raise ValueError(f"WhatsApp phone_number_id not configured for company {company_id}")
         if not access_token:
             raise ValueError(f"WhatsApp access_token not configured for company {company_id}")
 
-        return {"phone_number_id": phone_number_id, "access_token": access_token}
+        return {
+            "meta_app_id": meta_app_id,
+            "meta_app_secret": app_secret,
+            "meta_business_id": meta_business_id,
+            "phone_number_id": phone_number_id,
+            "access_token": access_token,
+            "webhook_verify_token": webhook_verify_token
+        }
     
     async def send_text_message(
         self,

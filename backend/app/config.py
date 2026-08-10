@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     workers: int = 4
+    public_url: str = "http://localhost:8000"  # Public URL for webhooks (use Cloudflare tunnel in production)
     
     # Database
     database_url: str
@@ -48,6 +49,8 @@ class Settings(BaseSettings):
     # WhatsApp / Meta
     whatsapp_webhook_verify_token: str = ""
     whatsapp_api_version: str = "v18.0"
+    whatsapp_phone_number_id: str = ""
+    whatsapp_access_token: str = ""
     meta_app_id: str = ""
     meta_app_secret: str = ""
     meta_business_id: str = ""
@@ -64,6 +67,9 @@ class Settings(BaseSettings):
     # Ollama
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = ""
+    
+    # Local Embeddings
+    local_embedding_model: str = "all-MiniLM-L6-v2"
     
     # Mistral
     mistral_api_key: str = ""
