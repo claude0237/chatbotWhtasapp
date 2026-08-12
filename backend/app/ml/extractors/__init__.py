@@ -1,5 +1,5 @@
 """Document Extractors for Text Extraction"""
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 from abc import ABC, abstractmethod
 import re
 
@@ -10,12 +10,10 @@ class BaseExtractor(ABC):
     @abstractmethod
     async def extract_text(self, file_path: str) -> str:
         """Extract text from document"""
-        pass
     
     @abstractmethod
     async def extract_metadata(self, file_path: str) -> Dict[str, Any]:
         """Extract metadata from document"""
-        pass
 
 
 class PDFExtractor(BaseExtractor):

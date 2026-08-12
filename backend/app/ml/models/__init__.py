@@ -1,7 +1,7 @@
 """ML Models for Document Ingestion and Embeddings"""
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Boolean, Text, ForeignKey, Enum as SQLEnum, JSON, Integer, LargeBinary
+from sqlalchemy import Column, String, DateTime, Boolean, Text, ForeignKey, Enum as SQLEnum, JSON, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -32,6 +32,13 @@ class IngestionJobStatus(str, enum.Enum):
     RUNNING = "RUNNING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+
+
+class MLProviderType(str, enum.Enum):
+    """ML Provider type enum"""
+    OPENAI = "OPENAI"
+    MISTRAL = "MISTRAL"
+    ANTHROPIC = "ANTHROPIC"
 
 
 class Document(Base):
@@ -122,3 +129,37 @@ class IngestionJob(Base):
     
     def __repr__(self):
         return f"<IngestionJob(id={self.id}, source_type={self.source_type}, status={self.status})>"
+
+
+class MLProviderConfig(Base):
+    """ML Provider configuration for superadmin"""
+    
+    __tablename__ = "ml_provider_configs"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    
+    provider_type = Column(SQLEnum(MLProviderType), nullable=False, unique=True)
+    is_active = Column(Boolean, default=False, nullable=False)
+    
+    # API Configuration
+    api_key = Column(String(500), nullable=True)
+    api_endpoint = Column(String(500), nullable=True)
+    
+    # Model Configuration
+    default_model = Column(String(200), nullable=True)
+    default_temperature = Column(Integer, nullable=True)
+    default_max_tokens = Column(Integer, nullable=True)
+    
+    # Rate limiting
+    requests_per_minute = Column(Integer, nullable=True)
+    requests_per_day = Column(Integer, nullable=True)
+    
+    # Metadata
+    extra_config = Column(JSON, nullable=True)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    def __repr__(self):
+        return f"<MLProviderConfig(id={self.id}, provider_type={self.provider_type}, is_active={self.is_active})>"

@@ -4,7 +4,7 @@ from uuid import UUID
 from datetime import datetime
 from sqlalchemy import select, and_, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.conversations.models import Conversation, Message, ConversationNote, ConversationStatus, ConversationPriority, ConversationMessageType, ConversationMessageStatus
+from app.conversations.models import Conversation, Message, ConversationNote, ConversationStatus, ConversationMessageStatus
 from app.customers.models import Customer
 
 
@@ -131,6 +131,19 @@ class ConversationRepository:
             .limit(limit)
         )
         return result.scalars().all()
+    
+    async def get_active_by_customer(self, company_id: UUID, customer_id: UUID) -> Optional[Conversation]:
+        """Get active conversation for a customer"""
+        result = await self.db.execute(
+            select(Conversation).where(
+                and_(
+                    Conversation.company_id == company_id,
+                    Conversation.customer_id == customer_id,
+                    Conversation.status == ConversationStatus.OPEN
+                )
+            ).order_by(Conversation.last_activity_at.desc())
+        )
+        return result.scalar_one_or_none()
     
     async def get_by_company_id(self, company_id: UUID, skip: int = 0, limit: int = 100) -> List[Conversation]:
         """Get conversations by company ID with pagination"""

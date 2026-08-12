@@ -1,5 +1,4 @@
 """File Upload Controller"""
-import os
 import uuid
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status

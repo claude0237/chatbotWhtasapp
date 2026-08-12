@@ -88,7 +88,6 @@ class UserLogin(BaseModel):
 
 class UserRegister(UserCreate):
     """Schema for user registration"""
-    pass
 
 
 class TokenResponse(BaseModel):

@@ -133,5 +133,12 @@ backend/cleanup_soft_deleted.py
 backend/create_test_user.py
 backend/init_db.py
 backend/create_superadmin.py
+backend/test_*.py
+backend/check_*.py
+backend/update_*.py
+backend/analyze_*.py
 *.tmp
 *.bak
+
+# ── Documentation temporaire ────────────────────────────────────────────────────
+LOGGING_STRATEGY.md

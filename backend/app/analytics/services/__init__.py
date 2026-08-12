@@ -3,14 +3,11 @@ from typing import Optional, Dict, Any, List
 from uuid import UUID
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func, text
-from sqlalchemy.orm import selectinload
 
 from app.analytics.models import AnalyticsMetric, AnalyticsReport, ReportType
 from app.analytics.repositories import AnalyticsMetricRepository, AnalyticsReportRepository
-from app.conversations.models import Conversation, ConversationStatus, Message
+from app.conversations.models import ConversationStatus
 from app.conversations.repositories import ConversationRepository, MessageRepository
-from app.users.models import User
 from app.users.repositories import UserRepository
 
 

@@ -1,7 +1,7 @@
 """Notification Models"""
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, JSON, Boolean, Text, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, String, DateTime, JSON, Boolean, ForeignKey, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.database import Base

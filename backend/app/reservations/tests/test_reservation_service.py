@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
-from app.reservations.models import Service, AvailabilitySlot, Reservation, ReservationStatus
+from app.reservations.models import AvailabilitySlot, Reservation, ReservationStatus
 from app.reservations.services import ReservationService
 
 

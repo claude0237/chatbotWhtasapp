@@ -1,7 +1,6 @@
 """WebSocket for real-time notifications"""
 from typing import Dict, Set
 from uuid import UUID
-import json
 import asyncio
 from fastapi import WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession

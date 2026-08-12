@@ -10,6 +10,7 @@ const NAV_SUPER_ADMIN = [
   { href: '/dashboard',  label: 'Dashboard',    icon: '🏠' },
   { href: '/companies',  label: 'Entreprises',  icon: '🏢' },
   { href: '/users',      label: 'Utilisateurs', icon: '👥' },
+  { href: '/superadmin/ml-providers', label: 'Config ML', icon: '🤖' },
   { href: '/whatsapp',   label: 'Webhook Meta', icon: '🔗' },
 ];
 
@@ -20,6 +21,7 @@ const NAV_COMPANY_ADMIN = [
   { href: '/bot',          label: 'Chatbot',             icon: '🤖' },
   { href: '/catalogue',    label: 'Catalogue',           icon: '🛍️' },
   { href: '/knowledge',    label: 'Base de connaissances',icon: '📚' },
+  { href: '/ml-config',    label: 'Config ML',           icon: '⚙️' },
   { href: '/users',        label: 'Équipe',              icon: '👥' },
   { href: '/whatsapp',     label: 'WhatsApp',            icon: '📱' },
 ];
@@ -94,9 +96,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Nav */}
         <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
-            const active = item.href === '/dashboard'
-              ? pathname === '/dashboard'
-              : pathname === item.href || (pathname?.startsWith(item.href + '/') ?? false);
+            const active = pathname === item.href || pathname?.startsWith(item.href + '/');
             return (
               <Link
                 key={item.href}

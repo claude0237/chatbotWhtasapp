@@ -4,7 +4,7 @@ from uuid import UUID
 from datetime import datetime
 from sqlalchemy import select, and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.whatsapp.models import WhatsAppMessage, WhatsAppTemplate, WebhookEvent, MessageDirection, MessageStatus
+from app.whatsapp.models import WhatsAppMessage, WhatsAppTemplate, WebhookEvent, MessageStatus
 
 
 class WhatsAppMessageRepository:

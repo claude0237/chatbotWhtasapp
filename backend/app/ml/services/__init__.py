@@ -20,10 +20,16 @@ class KnowledgeIngestionService:
         self.job_repository = IngestionJobRepository(db)
         self.chunker = TextChunker(chunk_size=1000, chunk_overlap=200)
         
-        # Initialize embedding service
+        # Initialize embedding service (Redis client will be initialized lazily)
         provider = get_embedding_provider(provider_type="local")  # Default to local
-        redis_client = get_redis_client()
-        self.embedding_service = EmbeddingService(provider, redis_client)
+        self.embedding_service = EmbeddingService(provider, redis_client=None)
+        self._redis_client = None
+    
+    async def _ensure_redis_client(self):
+        """Lazily initialize Redis client"""
+        if self._redis_client is None:
+            self._redis_client = await get_redis_client()
+            self.embedding_service.redis_client = self._redis_client
     
     async def ingest_document(
         self,
@@ -35,6 +41,7 @@ class KnowledgeIngestionService:
         extra_data: Optional[Dict[str, Any]] = None
     ) -> Document:
         """Ingest a single document"""
+        await self._ensure_redis_client()
         # Create document record
         document = Document(
             company_id=company_id,
@@ -99,6 +106,7 @@ class KnowledgeIngestionService:
         source_config: Dict[str, Any]
     ) -> IngestionJob:
         """Ingest documents from database (e.g., knowledge base entries)"""
+        await self._ensure_redis_client()
         # Create ingestion job
         job = IngestionJob(
             company_id=company_id,
@@ -186,6 +194,7 @@ class KnowledgeIngestionService:
     
     async def reindex_all(self, company_id: UUID) -> IngestionJob:
         """Reindex all documents for a company"""
+        await self._ensure_redis_client()
         # Create ingestion job
         job = IngestionJob(
             company_id=company_id,
@@ -283,6 +292,7 @@ class KnowledgeIngestionService:
         limit: int = 5
     ) -> List[DocumentChunk]:
         """Search for similar chunks using embedding similarity"""
+        await self._ensure_redis_client()
         # Generate query embedding
         query_embedding = await self.embedding_service.embed_text(query)
         

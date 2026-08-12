@@ -3,7 +3,7 @@ from typing import Optional, List
 from uuid import UUID
 from sqlalchemy import select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.knowledge.models import KnowledgeBase, KnowledgeCategory, SourceType
+from app.knowledge.models import KnowledgeBase, KnowledgeCategory
 
 
 class KnowledgeBaseRepository:

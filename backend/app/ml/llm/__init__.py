@@ -16,7 +16,6 @@ class LLMProvider(ABC):
         max_tokens: int = 500
     ) -> str:
         """Generate response from LLM"""
-        pass
     
     @abstractmethod
     async def generate_response_with_history(
@@ -26,7 +25,6 @@ class LLMProvider(ABC):
         max_tokens: int = 500
     ) -> str:
         """Generate response with conversation history"""
-        pass
 
 
 class OpenAILLMProvider(LLMProvider):
@@ -334,29 +332,44 @@ class MistralLLMProvider(LLMProvider):
 
 
 # Factory function to get LLM provider
-def get_llm_provider(provider_type: str) -> LLMProvider:
-    """Get LLM provider by type"""
+def get_llm_provider(provider_type: str, config: Optional[Any] = None) -> LLMProvider:
+    """Get LLM provider by type
+    
+    Args:
+        provider_type: Type of provider (openai, anthropic, ollama, mistral)
+        config: Optional MLProviderConfig object from superadmin config
+    """
     provider_type = provider_type.lower()
+    
+    # Use config from superadmin if available, otherwise fallback to .env
+    if config:
+        api_key = config.api_key
+        model = config.default_model or settings.ml_default_model
+        api_endpoint = config.api_endpoint
+    else:
+        api_key = None
+        model = None
+        api_endpoint = None
     
     if provider_type == "openai":
         return OpenAILLMProvider(
-            api_key=settings.openai_api_key,
-            model=settings.openai_model or "gpt-3.5-turbo"
+            api_key=api_key or settings.openai_api_key,
+            model=model or settings.openai_model or "gpt-3.5-turbo"
         )
     elif provider_type == "anthropic":
         return AnthropicLLMProvider(
-            api_key=settings.anthropic_api_key,
-            model=settings.anthropic_model or "claude-3-sonnet-20240229"
+            api_key=api_key or settings.anthropic_api_key,
+            model=model or settings.anthropic_model or "claude-3-sonnet-20240229"
         )
     elif provider_type == "ollama":
         return OllamaLLMProvider(
-            base_url=settings.ollama_base_url or "http://localhost:11434",
-            model=settings.ollama_model or "llama2"
+            base_url=api_endpoint or settings.ollama_base_url or "http://localhost:11434",
+            model=model or settings.ollama_model or "llama2"
         )
     elif provider_type == "mistral":
         return MistralLLMProvider(
-            api_key=settings.mistral_api_key,
-            model=settings.mistral_model or "mistral-small-latest"
+            api_key=api_key or settings.mistral_api_key,
+            model=model or settings.mistral_model or "mistral-small-latest"
         )
     else:
         raise ValueError(f"Unsupported LLM provider: {provider_type}")

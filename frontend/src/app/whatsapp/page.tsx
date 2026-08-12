@@ -638,7 +638,10 @@ export default function WhatsAppPage() {
           display_phone_number: r.data.display_phone_number || '',
           meta_app_id: r.data.meta_app_id || '',
           meta_business_id: r.data.meta_business_id || '',
-          webhook_verify_token: r.data.webhook_verify_token || ''
+          // Pre-fill with masked values (user can overwrite)
+          access_token: r.data.access_token_masked || '',
+          meta_app_secret: r.data.meta_app_secret_masked || '',
+          webhook_verify_token: r.data.webhook_verify_token_masked || ''
         }));
       }
     } catch {} finally { setLoading(false); }

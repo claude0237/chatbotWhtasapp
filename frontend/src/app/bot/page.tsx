@@ -699,15 +699,15 @@ export default function BotPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
             <h3 className="font-bold text-gray-900 mb-4">{config ? '✏️ Modifier le bot' : '🤖 Créer le bot'}</h3>
-            <form onSubmit={async e => { e.preventDefault(); setSubmitting(true); try { 
+            <form onSubmit={async e => { e.preventDefault(); setSubmitting(true); try {
               const formData = { ...configForm };
               // Auto-set ml_enabled based on bot_type
-              if (formData.bot_type === 'ML' || formData.bot_type === 'HYBRID') {
+              if (formData.bot_type === 'ML') {
                 formData.ml_enabled = true;
               } else {
                 formData.ml_enabled = false;
               }
-              if (config) await api.put('/bot/config', formData); else await api.post('/bot/config', formData); 
+              if (config) await api.put('/bot/config', formData); else await api.post('/bot/config', formData);
               setShowConfigModal(false); fetchBotConfig(); } catch (err: any) { setError(err.response?.data?.detail || 'Erreur'); } finally { setSubmitting(false); } }} className="space-y-3">
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Nom du bot *</label>
                 <input required value={configForm.name} onChange={e => setConfigForm({...configForm, name: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" placeholder="Mon chatbot" /></div>
@@ -724,9 +724,8 @@ export default function BotPage() {
                     onChange={e => setConfigForm({...configForm, bot_type: e.target.value})}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-green-500"
                   >
-                    <option value="NATIVE">Mode Natif (règles, scénarios, mots-clés)</option>
+                    <option value="NATIVE">Mode Natif (règles, scénarios, mots-clés + fallback ML)</option>
                     <option value="ML">Mode ML (Machine Learning uniquement)</option>
-                    <option value="HYBRID">Mode Hybride (ML + fallback natif)</option>
                   </select>
                 )}
               </div>

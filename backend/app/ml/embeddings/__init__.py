@@ -12,12 +12,10 @@ class EmbeddingProvider(ABC):
     @abstractmethod
     async def generate_embedding(self, text: str) -> List[float]:
         """Generate embedding for a single text"""
-        pass
     
     @abstractmethod
     async def generate_batch_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Generate embeddings for multiple texts"""
-        pass
 
 
 class OpenAIEmbeddingProvider(EmbeddingProvider):
@@ -199,8 +197,8 @@ def get_embedding_provider(provider_type: str = "openai") -> EmbeddingProvider:
         raise ValueError(f"Unsupported embedding provider: {provider_type}")
 
 
-def get_redis_client() -> Optional[redis.Redis]:
-    """Get Redis client for caching"""
+async def get_redis_client() -> Optional[redis.Redis]:
+    """Get Redis client for caching (async)"""
     if settings.redis_url:
         return redis.from_url(settings.redis_url, decode_responses=True)
     return None

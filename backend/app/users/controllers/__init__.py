@@ -9,7 +9,7 @@ from app.users.services import UserService
 from app.users.schemas import UserCreate, UserUpdate, UserResponse
 from app.auth.dependencies import (
     get_current_active_user, get_current_company_id,
-    require_company_admin, require_super_admin
+    require_company_admin
 )
 from app.users.models import User, UserRoleEnum
 

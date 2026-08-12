@@ -16,12 +16,25 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Create enum type
-    subscription_plan_enum = sa.Enum('FREE', 'BASIC', 'PREMIUM', 'ENTERPRISE', name='subscriptionplan')
-    subscription_plan_enum.create(op.get_bind())
+    # Create enum type if not exists
+    op.execute("""
+        DO $$
+        BEGIN
+            CREATE TYPE subscriptionplan AS ENUM ('FREE', 'BASIC', 'PREMIUM', 'ENTERPRISE');
+        EXCEPTION
+            WHEN duplicate_object THEN NULL;
+        END $$;
+    """)
     
     # Add column with default value
-    op.add_column('companies', sa.Column('subscription_plan', subscription_plan_enum, nullable=False, server_default='FREE'))
+    op.execute("""
+        DO $$
+        BEGIN
+            ALTER TABLE companies ADD COLUMN subscription_plan subscriptionplan DEFAULT 'FREE' NOT NULL;
+        EXCEPTION
+            WHEN duplicate_column THEN NULL;
+        END $$;
+    """)
 
 
 def downgrade() -> None:

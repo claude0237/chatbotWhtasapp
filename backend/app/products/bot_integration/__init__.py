@@ -1,5 +1,5 @@
 """Product Bot Integration - Search products and build product card messages"""
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 

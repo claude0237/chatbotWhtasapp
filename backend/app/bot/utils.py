@@ -1,6 +1,6 @@
 """Bot utility functions"""
 import re
-from datetime import datetime, timezone as dt_timezone
+from datetime import datetime
 from typing import Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 

@@ -1,6 +1,6 @@
 """Bot Controller"""
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field
 
@@ -36,7 +36,6 @@ class BotConfigurationResponse(BaseModel):
     ml_model: Optional[str]
     ml_temperature: Optional[str]
     ml_max_tokens: Optional[int]
-    fallback_strategy: Optional[str]
     confidence_threshold: Optional[str]
     created_at: str
     updated_at: str
@@ -60,7 +59,6 @@ class BotConfigurationCreateRequest(BaseModel):
     ml_model: Optional[str] = None
     ml_temperature: Optional[str] = None
     ml_max_tokens: Optional[int] = None
-    fallback_strategy: Optional[str] = None
     confidence_threshold: Optional[str] = None
     followup_timeout_minutes: Optional[int] = Field(default=60)
     followup_max_retries: Optional[int] = Field(default=3)
@@ -84,7 +82,6 @@ class BotConfigurationUpdateRequest(BaseModel):
     ml_model: Optional[str] = None
     ml_temperature: Optional[str] = None
     ml_max_tokens: Optional[int] = None
-    fallback_strategy: Optional[str] = None
     confidence_threshold: Optional[str] = None
     followup_timeout_minutes: Optional[int] = Field(default=60)
     followup_max_retries: Optional[int] = Field(default=3)
@@ -192,7 +189,6 @@ async def get_bot_config(
         "ml_model": config.ml_model,
         "ml_temperature": config.ml_temperature,
         "ml_max_tokens": config.ml_max_tokens,
-        "fallback_strategy": config.fallback_strategy.value if config.fallback_strategy else None,
         "confidence_threshold": config.confidence_threshold,
         "followup_timeout_minutes": config.followup_timeout_minutes,
         "followup_max_retries": config.followup_max_retries,
@@ -230,7 +226,6 @@ async def create_bot_config(
         ml_model=request.ml_model,
         ml_temperature=request.ml_temperature,
         ml_max_tokens=request.ml_max_tokens,
-        fallback_strategy=request.fallback_strategy,
         confidence_threshold=request.confidence_threshold
     )
     # Save business_hours directly
@@ -259,7 +254,6 @@ async def create_bot_config(
         "ml_model": config.ml_model,
         "ml_temperature": config.ml_temperature,
         "ml_max_tokens": config.ml_max_tokens,
-        "fallback_strategy": config.fallback_strategy.value if config.fallback_strategy else None,
         "confidence_threshold": config.confidence_threshold,
         "followup_timeout_minutes": config.followup_timeout_minutes,
         "followup_max_retries": config.followup_max_retries,
@@ -304,7 +298,6 @@ async def update_bot_config(
         ml_model=request.ml_model,
         ml_temperature=request.ml_temperature,
         ml_max_tokens=request.ml_max_tokens,
-        fallback_strategy=request.fallback_strategy,
         confidence_threshold=request.confidence_threshold
     )
     # Save business_hours directly
@@ -333,7 +326,6 @@ async def update_bot_config(
         "ml_model": updated_config.ml_model,
         "ml_temperature": updated_config.ml_temperature,
         "ml_max_tokens": updated_config.ml_max_tokens,
-        "fallback_strategy": updated_config.fallback_strategy.value if updated_config.fallback_strategy else None,
         "confidence_threshold": updated_config.confidence_threshold,
         "followup_timeout_minutes": updated_config.followup_timeout_minutes,
         "followup_max_retries": updated_config.followup_max_retries,

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # The webhook layer detects this prefix and changes conversation status to WAITING.
 HANDOFF_PREFIX = "__HANDOFF__:"
 
-from app.bot.models import BotConversationState, BotType, FallbackStrategy
+from app.bot.models import BotConversationState, BotType
 from app.bot.repositories import (
     BotConfigurationRepository,
     BotKeywordRepository,
@@ -23,6 +23,9 @@ from app.bot.repositories import (
 )
 from app.products.repositories import ProductRepository, ProductCategoryRepository
 from app.companies.models import Company, SubscriptionPlan, MLQuota, MLUsage
+from app.conversations.models import ConversationStatus
+from app.conversations.repositories import ConversationRepository
+from app.customers.repositories import CustomerRepository
 from app.config import settings
 
 
@@ -45,6 +48,8 @@ class BotEngine:
         self.state_repo = BotConversationStateRepository(db)
         self.product_repo = ProductRepository(db)
         self.category_repo = ProductCategoryRepository(db)
+        self.conversation_repo = ConversationRepository(db)
+        self.customer_repo = CustomerRepository(db)
 
     async def process(
         self,
@@ -66,76 +71,81 @@ class BotEngine:
         
         # ML is only available for non-FREE plans
         # Superadmin enables ML at company level (company.ml_enabled)
-        # Company admin then chooses bot mode: NATIVE, ML, or HYBRID
+        # Company admin then chooses bot mode: NATIVE or ML
         ml_enabled = company.ml_enabled if company else False
         can_use_ml = ml_enabled and company and company.subscription_plan != SubscriptionPlan.FREE
 
         normalized = message_text.strip().upper()
 
-        # ── 1. Active scenario mid-flight? ──────────────────────────────────
-        state = await self.state_repo.get_active(company_id, phone_number)
-        if state:
-            return await self._advance_scenario(state, normalized, message_text, config.unknown_message)
+        # ── 1. Active scenario mid-flight? (only in NATIVE mode) ────────────────
+        if config.bot_type == BotType.NATIVE:
+            state = await self.state_repo.get_active(company_id, phone_number)
+            if state:
+                scenario_result = await self._advance_scenario(state, normalized, message_text, config.unknown_message)
+                # If scenario finished without message, continue with normal processing
+                if scenario_result is not None:
+                    return scenario_result
+                # Fall through to keyword/ML matching below
 
-        # ── 2. Scenario trigger? ─────────────────────────────────────────────
-        scenario = await self.scenario_repo.get_by_trigger_keyword(config.id, normalized)
-        if scenario and scenario.steps:
-            first_step = scenario.steps[0]
-            first_message = await self._resolve_step_message(first_step, {}, company_id)
-            new_state = BotConversationState(
-                company_id=company_id,
-                phone_number=phone_number,
-                scenario_id=scenario.id,
-                current_step=0,
-                collected_data={},
-                retry_count=0,
-                last_bot_message=first_message,
-            )
-            await self.state_repo.create(new_state)
-            return first_message
+        # ── 2. Scenario trigger? (only in NATIVE mode) ─────────────────────────
+        if config.bot_type == BotType.NATIVE:
+            scenario = await self.scenario_repo.get_by_trigger_keyword(config.id, normalized)
+            if scenario and scenario.steps:
+                first_step = scenario.steps[0]
+                first_message = await self._resolve_step_message(first_step, {}, company_id)
+                new_state = BotConversationState(
+                    company_id=company_id,
+                    phone_number=phone_number,
+                    scenario_id=scenario.id,
+                    current_step=0,
+                    collected_data={},
+                    retry_count=0,
+                    last_bot_message=first_message,
+                )
+                await self.state_repo.create(new_state)
+                return first_message
 
-        # ── 3. Keyword match? ────────────────────────────────────────────────
-        keyword_obj = await self.keyword_repo.get_by_keyword(config.id, normalized)
-        if keyword_obj:
-            return self._interpolate(keyword_obj.response, {})
+        # ── 3. Keyword match? (only in NATIVE mode) ─────────────────────────────
+        if config.bot_type == BotType.NATIVE:
+            keyword_obj = await self.keyword_repo.get_by_keyword(config.id, normalized)
+            if keyword_obj:
+                return self._interpolate(keyword_obj.response, {})
 
-        # ── 4. ML Processing (if enabled, configured, and plan allows) ──────────
-        if can_use_ml and config.bot_type != BotType.NATIVE:
+        # ── 4. ML Processing (only if ML mode and enabled) ────────────────────
+        if config.bot_type == BotType.ML and can_use_ml:
             # Check ML quota before processing
             if not await self._check_and_update_ml_usage(company_id, company):
-                # Quota exceeded, fall back to native
-                return self._interpolate(config.unknown_message or "Je n'ai pas compris votre message.", {})
-            
+                # Quota exceeded
+                return self._interpolate(config.unknown_message or "Service ML indisponible. Quota dépassé.", {})
+
             try:
                 from app.ml.engine import MLEngine
                 ml_engine = MLEngine(self.db)
-                
-                native_response = self._interpolate(config.unknown_message or "Je n'ai pas compris votre message.", {})
-                
+
                 # Use platform default ML configuration
                 ml_result = await ml_engine.process_message(
-                    company_id, 
+                    company_id,
                     message_text,
                     temperature=settings.ml_default_temperature,
                     max_tokens=settings.ml_default_max_tokens,
                     confidence_threshold=settings.ml_default_confidence_threshold
                 )
-                
+
                 logger.info(f"ML result: {ml_result}")
-                
+
                 # Check confidence threshold
                 if ml_result.get("confidence", 0) >= settings.ml_default_confidence_threshold:
-                    return ml_result.get("response", native_response)
+                    return ml_result.get("response", "Je n'ai pas compris votre message.")
                 else:
-                    # Fallback to native if confidence is low
+                    # Confidence too low
                     logger.info(f"ML confidence too low: {ml_result.get('confidence', 0)} < {settings.ml_default_confidence_threshold}")
-                    return native_response
+                    return "Je n'ai pas compris votre message. Veuillez reformuler."
             except Exception as e:
-                # If ML fails, fall back to native
+                # If ML fails
                 logger.error(f"ML processing failed: {str(e)}")
-                pass
+                return "Une erreur est survenue avec le service ML. Veuillez réessayer."
 
-        # ── 5. Native Fallback ──────────────────────────────────────────────
+        # ── 5. Native Fallback (unknown_message) ─────────────────────────────
         return self._interpolate(config.unknown_message or "Je n'ai pas compris votre message.", {})
 
     async def _check_and_update_ml_usage(self, company_id: UUID, company: Company) -> bool:
@@ -249,11 +259,25 @@ class BotEngine:
             return f"{HANDOFF_PREFIX}{self._interpolate(handoff_msg, state.collected_data)}"
 
         # ── Evaluate conditional reply (inline — does NOT advance step) ─────
-        conditional_reply = self._evaluate_step(current_step, normalized, step_type)
+        conditional_reply = self._evaluate_step(current_step, normalized, step_type, unknown_message)
         if conditional_reply is not None:
             # The step produced an inline reply for invalid input → stay on same step
+            state.retry_count += 1
+            
+            # Check if max retries exceeded
+            config = await self.config_repo.get_by_company_id(state.company_id)
+            if config and state.retry_count >= config.followup_max_retries:
+                # Max retries reached - close conversation
+                await self._close_conversation(state.company_id, state.phone_number, config.closing_message)
+                await self.state_repo.delete(state)
+                return self._interpolate(config.closing_message or "Conversation terminée suite à trop de tentatives.", {})
+            
             await self.state_repo.update(state)
             raw = self._interpolate(conditional_reply, state.collected_data)
+            # For all steps except the last, repeat the step question
+            if state.current_step < len(steps) - 1:
+                step_message = await self._resolve_step_message(current_step, state.collected_data, state.company_id)
+                return await self._resolve_catalogue_vars(raw + "\n\n" + step_message, state.company_id)
             return await self._resolve_catalogue_vars(raw, state.company_id)
 
         # ── Determine next step index ────────────────────────────────────────
@@ -280,7 +304,8 @@ class BotEngine:
             if end_msg:
                 raw = self._interpolate(end_msg, state.collected_data)
                 return await self._resolve_catalogue_vars(raw, state.company_id)
-            return "✅ Merci !"
+            # No end message configured, return None to continue with normal processing
+            return None
 
         next_step = steps[state.current_step]
         next_message = await self._resolve_step_message(next_step, state.collected_data, state.company_id)
@@ -364,10 +389,10 @@ class BotEngine:
 
     # ── Helpers ──────────────────────────────────────────────────────────────
 
-    def _evaluate_step(self, step: dict, normalized: str, step_type: str) -> Optional[str]:
+    def _evaluate_step(self, step: dict, normalized: str, step_type: str, unknown_message: Optional[str] = None) -> Optional[str]:
         """
         For choice/condition steps: if the answer is invalid return an error reply
-        so the user stays on the same step. Returns None if the answer is valid.
+        so the user stays on same step. Returns None if the answer is valid.
         """
         if step_type == "choice":
             choices: dict = step.get("choices", {})
@@ -376,18 +401,19 @@ class BotEngine:
                 return None  # valid choice → advance
             if "DEFAULT" in choices:
                 return choices["DEFAULT"]  # invalid → re-ask
-            return None  # no DEFAULT defined → advance anyway
+            # No DEFAULT defined → return unknown_message to stay on same step
+            return unknown_message or "Choix invalide. Veuillez sélectionner une option valide."
 
         if step_type == "condition":
             conditions: list = step.get("conditions", [])
             for cond in conditions:
                 if self._match_condition(cond, normalized):
                     return None  # matched → advance
-            # No match and no DEFAULT → advance anyway
+            # No match and no DEFAULT → return unknown_message to stay on same step
             for cond in conditions:
                 if cond.get("if") == "default":
                     return cond.get("reply", "")
-            return None
+            return unknown_message or "Réponse invalide. Veuillez réessayer."
 
         return None  # "text" step is always valid
 
@@ -499,3 +525,21 @@ class BotEngine:
     def _extract_step_message(step: dict) -> str:
         """Extract the display message from a step dict."""
         return step.get("message") or step.get("text") or str(step)
+
+    async def _close_conversation(self, company_id: UUID, phone_number: str, closing_message: Optional[str] = None) -> None:
+        """Close the conversation for a phone number."""
+        from datetime import datetime
+        
+        # Get customer
+        customer = await self.customer_repo.get_by_phone_number(company_id, phone_number)
+        if not customer:
+            return
+        
+        # Get active conversation
+        conversation = await self.conversation_repo.get_active_by_customer(company_id, customer.id)
+        if conversation:
+            conversation.status = ConversationStatus.CLOSED
+            conversation.closed_at = datetime.utcnow()
+            conversation.last_activity_at = datetime.utcnow()
+            await self.db.commit()
+            await self.db.refresh(conversation)

@@ -2,7 +2,6 @@
 from typing import Optional, Dict, Any, List
 from abc import ABC, abstractmethod
 from uuid import UUID
-from datetime import datetime
 from fastapi import Request
 
 
@@ -19,22 +18,18 @@ class ChannelProvider(ABC):
         metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Send a message through the channel"""
-        pass
     
     @abstractmethod
     async def receive_webhook(self, payload: Dict[str, Any], headers: Dict[str, str]) -> Dict[str, Any]:
         """Process incoming webhook from the channel"""
-        pass
     
     @abstractmethod
     async def verify_webhook(self, request: Request) -> bool:
         """Verify webhook signature"""
-        pass
     
     @abstractmethod
     async def get_message_status(self, external_message_id: str) -> Dict[str, Any]:
         """Get status of a message"""
-        pass
     
     @abstractmethod
     async def send_template(
@@ -45,7 +40,6 @@ class ChannelProvider(ABC):
         language: str = "en"
     ) -> Dict[str, Any]:
         """Send a template message"""
-        pass
     
     @abstractmethod
     async def send_media(
@@ -56,7 +50,6 @@ class ChannelProvider(ABC):
         caption: Optional[str] = None
     ) -> Dict[str, Any]:
         """Send a media message (image, video, document, audio)"""
-        pass
 
 
 class ChannelFactory:
@@ -132,7 +125,6 @@ class ChannelService:
     
     async def get_channel_provider(self, channel_id: UUID) -> ChannelProvider:
         """Get a channel provider instance for a channel"""
-        from app.channels.models import Channel
         from app.channels.repositories import ChannelRepository, ChannelConfigurationRepository
         
         channel_repo = ChannelRepository(self.db)

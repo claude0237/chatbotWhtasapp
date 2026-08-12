@@ -3,7 +3,6 @@ from typing import Optional, Dict, Any, List
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
-import json
 
 from app.bot.models import MLModel, MLModelType
 from app.bot.repositories import MLModelRepository

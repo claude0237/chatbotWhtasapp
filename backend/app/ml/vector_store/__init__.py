@@ -1,8 +1,7 @@
 """Vector Store Service for managing embeddings and similarity search"""
-from typing import List, Optional
+from typing import List
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, text
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -33,59 +32,9 @@ class VectorStoreService:
         limit: int = 5,
         threshold: float = 0.5
     ) -> List[tuple[DocumentChunk, float]]:
-        """Search for similar chunks using pgvector cosine similarity"""
-        try:
-            # Use pgvector for efficient similarity search
-            # Convert embedding to PostgreSQL array format
-            embedding_array = '[' + ','.join(map(str, query_embedding)) + ']'
-            
-            # Use pgvector's cosine distance (1 - cosine similarity)
-            query = text("""
-                SELECT dc.id, dc.document_id, dc.content, dc.chunk_index, 
-                       dc.embedding, dc.extra_data, dc.created_at, dc.updated_at,
-                       1 - (embedding <=> :query_embedding::vector) as similarity
-                FROM document_chunks dc
-                JOIN documents d ON dc.document_id = d.id
-                WHERE d.company_id = :company_id
-                  AND dc.embedding IS NOT NULL
-                  AND (1 - (embedding <=> :query_embedding::vector)) >= :threshold
-                ORDER BY similarity DESC
-                LIMIT :limit
-            """)
-            
-            result = await self.db.execute(
-                query,
-                {
-                    "query_embedding": embedding_array,
-                    "company_id": str(company_id),
-                    "threshold": threshold,
-                    "limit": limit
-                }
-            )
-            
-            rows = result.fetchall()
-            
-            # Convert rows to DocumentChunk objects with similarity scores
-            similarities = []
-            for row in rows:
-                chunk = DocumentChunk(
-                    id=row[0],
-                    document_id=row[1],
-                    content=row[2],
-                    chunk_index=row[3],
-                    embedding=row[4],
-                    extra_data=row[5],
-                    created_at=row[6],
-                    updated_at=row[7]
-                )
-                similarity = float(row[8])
-                similarities.append((chunk, similarity))
-            
-            return similarities
-        except Exception as e:
-            print(f"pgvector search failed, falling back to sklearn: {str(e)}")
-            # Fallback to sklearn cosine similarity
-            return await self._search_similar_sklearn(company_id, query_embedding, limit, threshold)
+        """Search for similar chunks using sklearn cosine similarity (pgvector disabled for now)"""
+        # Directly use sklearn fallback due to pgvector syntax issues
+        return await self._search_similar_sklearn(company_id, query_embedding, limit, threshold)
     
     async def _search_similar_sklearn(
         self,

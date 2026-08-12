@@ -5,9 +5,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel
 from app.jobs.followup import run_followup_job
 from app.config import settings
 from app.auth.routes import router as auth_router
@@ -19,21 +16,13 @@ from app.conversations.routes import router as conversations_router
 from app.customers.routes import router as customers_router
 from app.bot.routes import router as bot_router
 from app.knowledge.routes import router as knowledge_router
-from app.ml.routes import router as ml_router
+from app.ml.routes import router as ml_router, public_router as ml_public_router
 from app.channels.routes import router as channels_router
 from app.notifications.controllers import router as notifications_router
 from app.analytics.controllers import router as analytics_router
 from app.products.controllers import router as products_router
 from app.reservations.controllers import router as reservations_router
 from app.upload import router as upload_router
-from app.database import get_db
-from app.bot.engine import BotEngine
-from uuid import UUID
-
-# Simulation request schema
-class SimulateRequest(BaseModel):
-    company_id: str
-    message: str
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
@@ -76,6 +65,7 @@ app.include_router(customers_router)
 app.include_router(bot_router)
 app.include_router(knowledge_router)
 app.include_router(ml_router)
+app.include_router(ml_public_router, prefix="/ml", tags=["ML Public"])
 app.include_router(channels_router)
 app.include_router(notifications_router)
 app.include_router(analytics_router)

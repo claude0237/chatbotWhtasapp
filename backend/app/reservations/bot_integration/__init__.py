@@ -1,11 +1,10 @@
 """Reservation Bot Integration - Propose reservations, check availability, auto-confirm"""
-from typing import Optional, List, Dict, Any
+from typing import Optional, Dict, Any
 from uuid import UUID
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.reservations.services import ReservationService
-from app.reservations.models import Service, AvailabilitySlot, ReservationStatus
 
 
 RESERVATION_KEYWORDS = [

@@ -1,12 +1,11 @@
 """Conversation Service"""
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from uuid import UUID
-from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.conversations.models import Conversation, Message, ConversationStatus, ConversationPriority, SenderType, ConversationMessageType, ConversationMessageStatus
 from app.customers.models import Customer
-from app.conversations.repositories import CustomerRepository, ConversationRepository, MessageRepository, ConversationNoteRepository
+from app.conversations.repositories import CustomerRepository, ConversationRepository, MessageRepository
 from app.bot.services import NativeBotEngine
 
 
@@ -239,26 +238,17 @@ class MessageService:
         
         bot_response = None
         
-        # Route based on bot type
-        if config.bot_type in [BotType.ML, BotType.HYBRID] and config.ml_enabled:
-            # Use ML Engine with fallback
+        # Route based on bot type — ML and NATIVE are strictly separated
+        if config.bot_type == BotType.ML and config.ml_enabled:
+            # Use ML Engine only (no native fallback)
             from app.ml.engine import MLEngine
-            from app.bot.services import NativeBotEngine
             
             ml_engine = MLEngine(self.db)
-            native_engine = NativeBotEngine(self.db)
-            
-            # Get native response for fallback
-            native_response = await native_engine.process_message(conversation.company_id, customer_message)
-            
-            # Process with ML and fallback
-            ml_result = await ml_engine.process_with_fallback(
+            ml_result = await ml_engine.process_message(
                 company_id=conversation.company_id,
-                message=customer_message,
-                native_response=native_response
+                message=customer_message
             )
-            
-            bot_response = ml_result["response"]
+            bot_response = ml_result.get("response") if ml_result else None
         else:
             # Use Native Bot Engine
             bot_engine = NativeBotEngine(self.db)

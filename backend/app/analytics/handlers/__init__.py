@@ -1,7 +1,5 @@
 """Analytics Event Handlers"""
 from typing import Dict, Any
-from uuid import UUID
-from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.events import EventHandler, EventBus

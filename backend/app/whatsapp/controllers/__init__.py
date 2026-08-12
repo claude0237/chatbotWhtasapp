@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 
 from app.database import get_db
 from app.whatsapp.services import WhatsAppService
-from app.whatsapp.models import MessageType
 from app.auth.dependencies import get_current_active_user, get_current_company_id
 from app.users.models import User
 from app.config import settings
@@ -40,13 +39,6 @@ class CreateTemplateRequest(BaseModel):
     components: dict
 
 
-class SimulateRequest(BaseModel):
-    """Request schema for bot simulation"""
-    company_id: str
-    phone_number: str
-    message: str
-
-
 class WhatsAppPerformanceStats(BaseModel):
     """Performance statistics for a company"""
     company_id: str
@@ -75,7 +67,6 @@ async def get_performance_stats(
     from sqlalchemy import select as _select, func as _func
     from app.companies.models import Company as _Company
     from app.customers.models import Customer as _Customer
-    from app.channels.models import ChannelType
     from app.whatsapp.models import WhatsAppMessage as _WhatsAppMessage
     from datetime import datetime, timedelta
     
@@ -419,14 +410,6 @@ async def get_webhook_info(
     """Return webhook URL and masked verify token for Meta configuration"""
     base = str(request.base_url).rstrip("/")
     
-    # Get tenant-specific webhook info
-    channel_repo = ChannelRepository(db := request.state.db if hasattr(request.state, 'db') else None)
-    from app.channels.repositories import ChannelConfigurationRepository
-    from app.channels.models import ChannelType
-    from app.database import get_db
-    
-    # We need to get the db session differently here
-    # For now, return both legacy and tenant-specific info
     token = settings.whatsapp_webhook_verify_token
     masked = token[:4] + "*" * max(0, len(token) - 6) + token[-2:] if len(token) > 6 else "***"
     
@@ -481,25 +464,40 @@ async def get_whatsapp_config(
     credentials = await cred_repo.get_by_channel_id(channel.id)
     cred_map = {c.credential_type: c.encrypted_value for c in credentials}
     
-    # Decrypt access token for display (masked)
+    # Decrypt access token for display (masked: 4 first + 4 last)
     raw_token = cred_map.get("ACCESS_TOKEN")
     access_token_masked = ""
     if raw_token:
         try:
             decrypted = decrypt_credential(raw_token)
-            access_token_masked = decrypted[:8] + "..." if len(decrypted) > 8 else "***"
+            if len(decrypted) > 8:
+                access_token_masked = decrypted[:4] + "..." + decrypted[-4:]
+            else:
+                access_token_masked = "***"
         except:
             access_token_masked = "***"
     
-    # Decrypt app secret for display (masked)
+    # Decrypt app secret for display (masked: 4 first + 4 last)
     raw_secret = cred_map.get("META_APP_SECRET")
     app_secret_masked = ""
     if raw_secret:
         try:
             decrypted = decrypt_credential(raw_secret)
-            app_secret_masked = decrypted[:4] + "..." if len(decrypted) > 4 else "***"
+            if len(decrypted) > 8:
+                app_secret_masked = decrypted[:4] + "..." + decrypted[-4:]
+            else:
+                app_secret_masked = "***"
         except:
             app_secret_masked = "***"
+    
+    # Mask webhook verify token (4 first + 4 last)
+    webhook_verify_token = config_map.get("webhook_verify_token", "")
+    webhook_verify_token_masked = ""
+    if webhook_verify_token:
+        if len(webhook_verify_token) > 8:
+            webhook_verify_token_masked = webhook_verify_token[:4] + "..." + webhook_verify_token[-4:]
+        else:
+            webhook_verify_token_masked = "***"
     
     webhook_url = f"{settings.public_url}/whatsapp/webhook/{company_id}"
     
@@ -511,7 +509,7 @@ async def get_whatsapp_config(
         "meta_business_id": config_map.get("meta_business_id", ""),
         "phone_number_id": config_map.get("phone_number_id", ""),
         "access_token_masked": access_token_masked,
-        "webhook_verify_token": config_map.get("webhook_verify_token", ""),
+        "webhook_verify_token_masked": webhook_verify_token_masked,
         "webhook_url": webhook_url
     }
 
@@ -1048,33 +1046,3 @@ async def get_active_templates(
         }
         for template in templates
     ]
-
-
-@router.post("/simulate")
-async def simulate_bot(
-    request: SimulateRequest,
-    db: AsyncSession = Depends(get_db)
-):
-    """Simulate bot response with ML support"""
-    from app.bot.engine import BotEngine
-    
-    bot_engine = BotEngine(db)
-    
-    response = await bot_engine.process(
-        company_id=UUID(request.company_id),
-        phone_number=request.phone_number,
-        message_text=request.message
-    )
-    
-    if response is None:
-        return {
-            "response": "Bot not configured",
-            "source": "error",
-            "confidence": 0.0
-        }
-    
-    return {
-        "response": response,
-        "source": "bot",
-        "confidence": 1.0
-    }

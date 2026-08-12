@@ -4,7 +4,8 @@ from uuid import UUID
 from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.bot.models import BotConfiguration, BotScenario, BotKeyword, MLModel, BotType, BotConversationState
+from app.bot.models import BotConfiguration, BotScenario, BotKeyword, MLModel, BotConversationState
+from app.cache import get_cache_service
 
 
 class BotConfigurationRepository:
@@ -27,12 +28,26 @@ class BotConfigurationRepository:
         )
         return result.scalar_one_or_none()
     
-    async def get_by_company_id(self, company_id: UUID) -> Optional[BotConfiguration]:
+    async def get_by_company_id(self, company_id: UUID, use_cache: bool = True) -> Optional[BotConfiguration]:
         """Get bot configuration by company ID"""
+        cache = await get_cache_service()
+        
+        # Try cache first
+        if use_cache:
+            cached = await cache.get("bot_config", company_id)
+            if cached is not None:
+                return cached
+        
         result = await self.db.execute(
             select(BotConfiguration).where(BotConfiguration.company_id == company_id)
         )
-        return result.scalar_one_or_none()
+        config = result.scalar_one_or_none()
+        
+        # Cache result
+        if use_cache and config:
+            await cache.set("bot_config", company_id, value=config, ttl=600)  # 10 minutes
+        
+        return config
     
     async def get_active_configuration(self, company_id: UUID) -> Optional[BotConfiguration]:
         """Get active bot configuration for a company"""
@@ -42,14 +57,27 @@ class BotConfigurationRepository:
         """Update bot configuration"""
         await self.db.commit()
         await self.db.refresh(config)
+        
+        # Invalidate cache
+        cache = await get_cache_service()
+        await cache.delete("bot_config", config.company_id)
+        
         return config
     
     async def delete(self, config_id: UUID) -> bool:
         """Delete bot configuration by ID"""
-        config = await self.get_by_id(config_id)
+        result = await self.db.execute(
+            select(BotConfiguration).where(BotConfiguration.id == config_id)
+        )
+        config = result.scalar_one_or_none()
         if config:
             await self.db.delete(config)
             await self.db.commit()
+            
+            # Invalidate cache
+            cache = await get_cache_service()
+            await cache.delete("bot_config", config.company_id)
+            
             return True
         return False
 
@@ -83,8 +111,16 @@ class BotScenarioRepository:
         )
         return result.scalars().all()
     
-    async def get_by_trigger_keyword(self, bot_configuration_id: UUID, trigger_keyword: str) -> Optional[BotScenario]:
+    async def get_by_trigger_keyword(self, bot_configuration_id: UUID, trigger_keyword: str, use_cache: bool = True) -> Optional[BotScenario]:
         """Get scenario by trigger keyword for a bot configuration"""
+        cache = await get_cache_service()
+        
+        # Try cache first
+        if use_cache:
+            cached = await cache.get("scenario_trigger", bot_configuration_id, trigger_keyword.upper())
+            if cached is not None:
+                return cached
+        
         result = await self.db.execute(
             select(BotScenario).where(
                 and_(
@@ -94,7 +130,13 @@ class BotScenarioRepository:
                 )
             )
         )
-        return result.scalar_one_or_none()
+        scenario = result.scalar_one_or_none()
+        
+        # Cache result
+        if use_cache and scenario:
+            await cache.set("scenario_trigger", bot_configuration_id, trigger_keyword.upper(), value=scenario, ttl=900)
+        
+        return scenario
     
     async def get_active_scenarios(self, bot_configuration_id: UUID) -> List[BotScenario]:
         """Get active scenarios for a bot configuration"""
@@ -114,14 +156,27 @@ class BotScenarioRepository:
         """Update bot scenario"""
         await self.db.commit()
         await self.db.refresh(scenario)
+        
+        # Invalidate cache for this scenario's trigger keyword
+        cache = await get_cache_service()
+        await cache.delete("scenario_trigger", scenario.bot_configuration_id, scenario.trigger_keyword.upper())
+        
         return scenario
     
     async def delete(self, scenario_id: UUID) -> bool:
         """Delete bot scenario by ID"""
-        scenario = await self.get_by_id(scenario_id)
+        result = await self.db.execute(
+            select(BotScenario).where(BotScenario.id == scenario_id)
+        )
+        scenario = result.scalar_one_or_none()
         if scenario:
             await self.db.delete(scenario)
             await self.db.commit()
+            
+            # Invalidate cache for this scenario's trigger keyword
+            cache = await get_cache_service()
+            await cache.delete("scenario_trigger", scenario.bot_configuration_id, scenario.trigger_keyword.upper())
+            
             return True
         return False
 
@@ -155,8 +210,16 @@ class BotKeywordRepository:
         )
         return result.scalars().all()
     
-    async def get_by_keyword(self, bot_configuration_id: UUID, keyword: str) -> Optional[BotKeyword]:
+    async def get_by_keyword(self, bot_configuration_id: UUID, keyword: str, use_cache: bool = True) -> Optional[BotKeyword]:
         """Get keyword by keyword text for a bot configuration"""
+        cache = await get_cache_service()
+        
+        # Try cache first
+        if use_cache:
+            cached = await cache.get("keyword", bot_configuration_id, keyword.upper())
+            if cached is not None:
+                return cached
+        
         result = await self.db.execute(
             select(BotKeyword).where(
                 and_(
@@ -165,7 +228,13 @@ class BotKeywordRepository:
                 )
             )
         )
-        return result.scalar_one_or_none()
+        kw = result.scalar_one_or_none()
+        
+        # Cache result
+        if use_cache and kw:
+            await cache.set("keyword", bot_configuration_id, keyword.upper(), value=kw, ttl=900)
+        
+        return kw
     
     async def get_by_category(self, bot_configuration_id: UUID, category: str) -> List[BotKeyword]:
         """Get keywords by category for a bot configuration"""
@@ -185,14 +254,27 @@ class BotKeywordRepository:
         """Update bot keyword"""
         await self.db.commit()
         await self.db.refresh(keyword)
+        
+        # Invalidate cache for this keyword
+        cache = await get_cache_service()
+        await cache.delete("keyword", keyword.bot_configuration_id, keyword.keyword.upper())
+        
         return keyword
     
     async def delete(self, keyword_id: UUID) -> bool:
         """Delete bot keyword by ID"""
-        keyword = await self.get_by_id(keyword_id)
+        result = await self.db.execute(
+            select(BotKeyword).where(BotKeyword.id == keyword_id)
+        )
+        keyword = result.scalar_one_or_none()
         if keyword:
             await self.db.delete(keyword)
             await self.db.commit()
+            
+            # Invalidate cache for this keyword
+            cache = await get_cache_service()
+            await cache.delete("keyword", keyword.bot_configuration_id, keyword.keyword.upper())
+            
             return True
         return False
 

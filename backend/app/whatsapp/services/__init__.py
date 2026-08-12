@@ -3,7 +3,10 @@ from typing import Optional, Dict, Any
 from uuid import UUID
 from datetime import datetime
 import httpx
+import logging
 from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = logging.getLogger(__name__)
 
 from app.config import settings
 from app.whatsapp.models import WhatsAppMessage, WhatsAppTemplate, WebhookEvent, MessageDirection, MessageStatus, MessageType
@@ -121,6 +124,9 @@ class WhatsAppService:
                     }
                 )
                 
+                logger.info(f"WhatsApp API response status: {response.status_code}")
+                logger.info(f"WhatsApp API response body: {response.text}")
+                
                 if response.status_code == 200:
                     data = response.json()
                     whatsapp_message_id = data.get("messages", [{}])[0].get("id")
@@ -131,12 +137,12 @@ class WhatsAppService:
                     message.sent_at = datetime.utcnow()
                     await self.message_repository.update(message)
                 else:
-                    import logging as _lg
-                    _lg.getLogger(__name__).warning(f"Meta API send_text error {response.status_code}: {response.text}")
+                    logger.warning(f"Meta API send_text error {response.status_code}: {response.text}")
                     message.status = MessageStatus.FAILED
                     await self.message_repository.update(message)
                     
         except Exception as e:
+            logger.error(f"WhatsApp send_text exception: {str(e)}")
             message.status = MessageStatus.FAILED
             await self.message_repository.update(message)
             raise e
@@ -347,6 +353,8 @@ class WhatsAppService:
                                         phone_number=phone_from,
                                         message_text=msg_text,
                                     )
+                                    # If BotEngine returns None (scenario finished without message),
+                                    # don't send any reply - let the client continue the conversation
                                 except Exception as e:
                                     _wlog.error(
                                         f"BotEngine.process crashed for company {company_id}, "

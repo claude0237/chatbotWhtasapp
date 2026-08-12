@@ -12,7 +12,6 @@ class BotType(str, enum.Enum):
     """Bot type"""
     NATIVE = "NATIVE"
     ML = "ML"
-    HYBRID = "HYBRID"
 
 
 class MLProvider(str, enum.Enum):
@@ -21,13 +20,6 @@ class MLProvider(str, enum.Enum):
     ANTHROPIC = "ANTHROPIC"
     OLLAMA = "OLLAMA"
     MISTRAL = "MISTRAL"
-
-
-class FallbackStrategy(str, enum.Enum):
-    """Fallback strategy for ML bot"""
-    ML_TO_NATIVE = "ML_TO_NATIVE"
-    NATIVE_TO_ML = "NATIVE_TO_ML"
-    PARALLEL = "PARALLEL"
 
 
 class MLModelType(str, enum.Enum):
@@ -68,7 +60,6 @@ class BotConfiguration(Base):
     ml_model = Column(String(100), nullable=True)
     ml_temperature = Column(String(10), nullable=True)
     ml_max_tokens = Column(Integer, nullable=True)
-    fallback_strategy = Column(SQLEnum(FallbackStrategy), default=FallbackStrategy.ML_TO_NATIVE, nullable=True)
     confidence_threshold = Column(String(10), nullable=True)
     
     # Business hours (JSONB) — schedule per day of week

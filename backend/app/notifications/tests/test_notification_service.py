@@ -1,11 +1,10 @@
 """Unit tests for NotificationService"""
 import pytest
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from app.notifications.models import Notification, NotificationPreference, NotificationType, NotificationChannel
 from app.notifications.services import NotificationService
-from app.users.models import UserRoleEnum as UserRole
 
 
 @pytest.fixture

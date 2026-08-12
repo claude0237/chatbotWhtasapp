@@ -5,8 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ml.vector_store import VectorStoreService
 from app.ml.embeddings import get_embedding_provider, EmbeddingService
-from app.ml.llm import get_llm_provider, LLMProvider
-from app.bot.models import MLProvider as BotMLProvider
+from app.ml.llm import LLMProvider
 
 
 class RAGEngine:
@@ -22,6 +21,41 @@ class RAGEngine:
         
         # Initialize LLM provider
         self.llm_provider = llm_provider
+    
+    def _calculate_response_quality(self, response: str, context: Optional[str]) -> float:
+        """Calculate response quality based on overlap with context
+        
+        Returns a score between 0 and 1:
+        - 1.0: Response heavily based on context
+        - 0.5: Response partially based on context
+        - 0.0: No overlap with context
+        """
+        if not context:
+            return 0.5  # Neutral score if no context
+        
+        # Normalize text
+        response_lower = response.lower()
+        context_lower = context.lower()
+        
+        # Tokenize into words (remove punctuation)
+        import re
+        response_words = set(re.findall(r'\b\w+\b', response_lower))
+        context_words = set(re.findall(r'\b\w+\b', context_lower))
+        
+        if not response_words:
+            return 0.0
+        
+        # Calculate overlap ratio
+        overlap = len(response_words & context_words)
+        overlap_ratio = overlap / len(response_words)
+        
+        # Bonus for longer responses with good overlap
+        length_bonus = min(len(response_words) / 50, 0.2)  # Max 0.2 bonus
+        
+        # Combine overlap with length bonus
+        quality_score = min(overlap_ratio + length_bonus, 1.0)
+        
+        return quality_score
     
     async def retrieve(
         self,
@@ -46,7 +80,7 @@ class RAGEngine:
             print(f"Vector search failed: {str(e)}")
         
         # Fallback to text search in knowledge_base table
-        from sqlalchemy import select, and_, or_
+        from sqlalchemy import select, and_
         from app.knowledge.models import KnowledgeBase
         
         result = await self.db.execute(
@@ -130,7 +164,9 @@ class RAGEngine:
                 "response": response,
                 "context": None,
                 "sources": [],
-                "confidence": 0.0
+                "confidence": 0.0,
+                "retrieval_confidence": 0.0,
+                "response_quality": 0.5  # Neutral score when no context
             }
         
         # Build context from retrieved chunks
@@ -153,14 +189,22 @@ class RAGEngine:
             max_tokens=max_tokens
         )
         
-        # Calculate average confidence
-        avg_confidence = sum(sim for _, sim in retrieved_chunks) / len(retrieved_chunks)
+        # Calculate retrieval confidence (average similarity)
+        retrieval_confidence = sum(sim for _, sim in retrieved_chunks) / len(retrieved_chunks)
+        
+        # Calculate response quality (overlap with context)
+        response_quality = self._calculate_response_quality(response, context)
+        
+        # Combine both: 60% retrieval, 40% response quality
+        combined_confidence = (0.6 * retrieval_confidence) + (0.4 * response_quality)
         
         return {
             "response": response,
             "context": context,
             "sources": sources,
-            "confidence": avg_confidence
+            "confidence": combined_confidence,
+            "retrieval_confidence": retrieval_confidence,
+            "response_quality": response_quality
         }
     
     async def generate_with_history(
@@ -210,8 +254,15 @@ class RAGEngine:
             max_tokens=max_tokens
         )
         
-        # Calculate average confidence
-        avg_confidence = sum(sim for _, sim in retrieved_chunks) / len(retrieved_chunks) if retrieved_chunks else 0.0
+        # Calculate retrieval confidence (average similarity)
+        retrieval_confidence = sum(sim for _, sim in retrieved_chunks) / len(retrieved_chunks) if retrieved_chunks else 0.0
+        
+        # Calculate response quality (overlap with context)
+        context = "\n\n".join([content for content, _ in retrieved_chunks]) if retrieved_chunks else None
+        response_quality = self._calculate_response_quality(response, context)
+        
+        # Combine both: 60% retrieval, 40% response quality
+        combined_confidence = (0.6 * retrieval_confidence) + (0.4 * response_quality)
         
         sources = [
             {
@@ -223,7 +274,9 @@ class RAGEngine:
         
         return {
             "response": response,
-            "context": "\n\n".join([content for content, _ in retrieved_chunks]) if retrieved_chunks else None,
+            "context": context,
             "sources": sources,
-            "confidence": avg_confidence
+            "confidence": combined_confidence,
+            "retrieval_confidence": retrieval_confidence,
+            "response_quality": response_quality
         }

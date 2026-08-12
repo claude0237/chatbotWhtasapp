@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../lib/api';
+import AppLayout from '../../components/AppLayout';
 
 interface BotConfiguration {
   id: string;
@@ -14,7 +15,6 @@ interface BotConfiguration {
   ml_model: string | null;
   ml_temperature: string | null;
   ml_max_tokens: number | null;
-  fallback_strategy: string | null;
   confidence_threshold: string | null;
 }
 
@@ -23,17 +23,19 @@ export default function MLConfigPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [mlProviders, setMlProviders] = useState<any[]>([]);
   const { user } = useAuth();
 
   useEffect(() => {
     if (user) {
       fetchConfig();
+      fetchMlProviders();
     }
   }, [user]);
 
   const fetchConfig = async () => {
     try {
-      const response = await api.get('/bot/configuration');
+      const response = await api.get('/bot/config');
       setConfig(response.data);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to fetch configuration');
@@ -42,12 +44,21 @@ export default function MLConfigPage() {
     }
   };
 
+  const fetchMlProviders = async () => {
+    try {
+      const response = await api.get('/ml/provider-configs/public');
+      setMlProviders(response.data);
+    } catch (err: any) {
+      console.error('Failed to fetch ML providers:', err);
+    }
+  };
+
   const handleSave = async () => {
     if (!config) return;
 
     setSaving(true);
     try {
-      await api.put(`/bot/configuration/${config.id}`, config);
+      await api.put('/bot/config', config);
       alert('Configuration saved successfully');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to save configuration');
@@ -63,27 +74,24 @@ export default function MLConfigPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div>Loading...</div>
-      </div>
-    );
+    return <AppLayout><div className="flex items-center justify-center h-64 text-gray-400">Chargement...</div></AppLayout>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">ML Configuration</h1>
+    <AppLayout>
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Configuration ML</h1>
 
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+          <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded-lg mb-4 flex justify-between text-sm">
+            <span>{error}</span>
+            <button onClick={() => setError('')}>✕</button>
           </div>
         )}
 
         {config && (
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Bot Settings</h2>
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">Paramètres du Bot</h2>
             
             {/* Bot Type */}
             <div className="mb-6">
@@ -95,9 +103,8 @@ export default function MLConfigPage() {
                 onChange={(e) => handleChange('bot_type', e.target.value)}
                 className="w-full border border-gray-300 rounded-md px-3 py-2"
               >
-                <option value="NATIVE">Native</option>
+                <option value="NATIVE">Native (with ML fallback)</option>
                 <option value="ML">ML Only</option>
-                <option value="HYBRID">Hybrid</option>
               </select>
             </div>
 
@@ -129,9 +136,11 @@ export default function MLConfigPage() {
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
                   >
                     <option value="">Select Provider</option>
-                    <option value="OPENAI">OpenAI</option>
-                    <option value="ANTHROPIC">Anthropic</option>
-                    <option value="OLLAMA">Ollama</option>
+                    {mlProviders.map((provider) => (
+                      <option key={provider.id} value={provider.provider_type}>
+                        {provider.provider_type}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -179,23 +188,6 @@ export default function MLConfigPage() {
                   />
                 </div>
 
-                {/* Fallback Strategy */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Fallback Strategy
-                  </label>
-                  <select
-                    value={config.fallback_strategy || ''}
-                    onChange={(e) => handleChange('fallback_strategy', e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
-                  >
-                    <option value="">Select Strategy</option>
-                    <option value="ML_TO_NATIVE">ML to Native</option>
-                    <option value="NATIVE_TO_ML">Native to ML</option>
-                    <option value="PARALLEL">Parallel</option>
-                  </select>
-                </div>
-
                 {/* Confidence Threshold */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -226,6 +218,6 @@ export default function MLConfigPage() {
           </div>
         )}
       </div>
-    </div>
+    </AppLayout>
   );
 }

@@ -1,8 +1,7 @@
 """Company Repository"""
 from typing import Optional, List
 from uuid import UUID
-from datetime import datetime
-from sqlalchemy import select, delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.companies.models import Company, CompanySettings
 

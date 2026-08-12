@@ -1,7 +1,6 @@
 """Notification Services"""
 from typing import Optional, Dict, Any, List
 from uuid import UUID
-from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.notifications.models import Notification, NotificationPreference, NotificationType, NotificationChannel

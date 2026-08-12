@@ -1,9 +1,9 @@
 """Bot Service"""
-from typing import Optional, List, Dict, Any
+from typing import Optional, Dict, Any
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.models import BotConfiguration, BotScenario, BotKeyword, BotType
+from app.bot.models import BotConfiguration, BotType
 from app.bot.repositories import BotConfigurationRepository, BotScenarioRepository, BotKeywordRepository
 from app.knowledge.services import KnowledgeBaseService
 from app.ml.engine import MLEngine
@@ -35,40 +35,21 @@ class NativeBotEngine:
             logger.info(f"No bot configuration found for company {company_id}, returning unknown message")
             return await self.get_unknown_message(company_id)
         
-        # If ML is enabled, use ML engine with fallback
-        if config.ml_enabled and config.bot_type in [BotType.ML, BotType.HYBRID]:
+        # ML mode — process with ML engine only (no native fallback)
+        if config.bot_type == BotType.ML and config.ml_enabled:
             try:
-                # Get conversation history if available
-                conversation_history = conversation_context.get("history", []) if conversation_context else []
-                
-                # Try native response first for fallback
-                native_response = None
-                if config.bot_type == BotType.HYBRID:
-                    native_response = await self._process_native_response(company_id, message, conversation_context)
-                    logger.info(f"Company {company_id}: Generated native response for hybrid mode")
-                
-                # Process with ML engine and fallback
                 logger.info(f"Company {company_id}: Processing with ML engine (provider: {config.ml_provider}, model: {config.ml_model})")
-                ml_result = await self.ml_engine.process_with_fallback(
+                ml_result = await self.ml_engine.process_message(
                     company_id=company_id,
                     message=message,
-                    conversation_history=conversation_history,
-                    native_response=native_response
+                    temperature=float(config.ml_temperature) if config.ml_temperature else 0.7,
+                    max_tokens=config.ml_max_tokens if config.ml_max_tokens else 500
                 )
-                
-                # Log decision
-                logger.info(
-                    f"Company {company_id}: ML decision - strategy: {config.fallback_strategy}, "
-                    f"used_ml: {ml_result.get('used_ml', False)}, "
-                    f"confidence: {ml_result.get('confidence', 0)}"
-                )
-                
-                return ml_result["response"]
+                if ml_result and ml_result.get("response"):
+                    return ml_result["response"]
             except Exception as e:
                 logger.error(f"Company {company_id}: ML processing failed: {str(e)}")
-                # Fallback to native processing
-                logger.info(f"Company {company_id}: Falling back to native processing")
-                return await self._process_native_response(company_id, message, conversation_context)
+            return await self.get_unknown_message(company_id)
         
         # Native bot processing
         logger.info(f"Company {company_id}: Using native bot processing (bot_type: {config.bot_type})")
@@ -108,7 +89,7 @@ class NativeBotEngine:
                 return product_response
         except Exception as e:
             logger.warning(f"Product search failed: {e}")
-        
+
         # Return unknown message if no match
         return await self.get_unknown_message(company_id)
     
@@ -224,11 +205,10 @@ class BotConfigurationService:
         ml_model: Optional[str] = None,
         ml_temperature: Optional[str] = None,
         ml_max_tokens: Optional[int] = None,
-        fallback_strategy: Optional[str] = None,
         confidence_threshold: Optional[str] = None
     ) -> BotConfiguration:
         """Create a new bot configuration"""
-        from app.bot.models import MLProvider, FallbackStrategy
+        from app.bot.models import MLProvider
         
         config = BotConfiguration(
             company_id=company_id,
@@ -244,12 +224,11 @@ class BotConfigurationService:
             native_rules=native_rules,
             followup_timeout_minutes=followup_timeout_minutes,
             followup_max_retries=followup_max_retries,
-            ml_enabled=ml_enabled if ml_enabled is not None else (bot_type in [BotType.ML, BotType.HYBRID]),
+            ml_enabled=ml_enabled if ml_enabled is not None else (bot_type == BotType.ML),
             ml_provider=MLProvider(ml_provider) if ml_provider else None,
             ml_model=ml_model,
             ml_temperature=ml_temperature,
             ml_max_tokens=ml_max_tokens,
-            fallback_strategy=FallbackStrategy(fallback_strategy) if fallback_strategy else None,
             confidence_threshold=confidence_threshold
         )
         return await self.repository.create(config)
@@ -274,11 +253,10 @@ class BotConfigurationService:
         ml_model: Optional[str] = None,
         ml_temperature: Optional[str] = None,
         ml_max_tokens: Optional[int] = None,
-        fallback_strategy: Optional[str] = None,
         confidence_threshold: Optional[str] = None
     ) -> Optional[BotConfiguration]:
         """Update bot configuration"""
-        from app.bot.models import MLProvider, FallbackStrategy
+        from app.bot.models import MLProvider
         
         config = await self.repository.get_by_id(config_id)
         if config:
@@ -309,15 +287,16 @@ class BotConfigurationService:
             if ml_enabled is not None:
                 config.ml_enabled = ml_enabled
             if ml_provider is not None and ml_provider:
-                config.ml_provider = MLProvider(ml_provider)
+                try:
+                    config.ml_provider = MLProvider(ml_provider)
+                except ValueError:
+                    pass  # Invalid provider, skip
             if ml_model is not None:
                 config.ml_model = ml_model
             if ml_temperature is not None:
                 config.ml_temperature = ml_temperature
             if ml_max_tokens is not None:
                 config.ml_max_tokens = ml_max_tokens
-            if fallback_strategy is not None and fallback_strategy:
-                config.fallback_strategy = FallbackStrategy(fallback_strategy)
             if confidence_threshold is not None:
                 config.confidence_threshold = confidence_threshold
             return await self.repository.update(config)

@@ -5,6 +5,7 @@ from sqlalchemy import select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.products.models import Product, ProductCategory
+from app.cache import get_cache_service
 
 
 class ProductRepository:
@@ -18,6 +19,12 @@ class ProductRepository:
         self.db.add(product)
         await self.db.commit()
         await self.db.refresh(product)
+        
+        # Invalidate cache for this company
+        cache = await get_cache_service()
+        await cache.delete("products", product.company_id, "all", True)
+        await cache.delete("products", product.company_id, "all", False)
+        
         return product
     
     async def get_by_id(self, product_id: UUID) -> Optional[Product]:
@@ -32,9 +39,19 @@ class ProductRepository:
         company_id: UUID,
         skip: int = 0,
         limit: int = 100,
-        active_only: bool = True
+        active_only: bool = True,
+        use_cache: bool = True
     ) -> List[Product]:
         """Get products by company ID with pagination"""
+        cache = await get_cache_service()
+        
+        # Try cache first (only for first page, no skip)
+        if use_cache and skip == 0:
+            cache_key = f"products:{company_id}:all:{active_only}"
+            cached = await cache.get("products", company_id, "all", active_only)
+            if cached is not None:
+                return cached
+        
         query = select(Product).where(Product.company_id == company_id)
         
         if active_only:
@@ -43,16 +60,31 @@ class ProductRepository:
         query = query.order_by(Product.created_at.desc()).offset(skip).limit(limit)
         
         result = await self.db.execute(query)
-        return result.scalars().all()
+        products = result.scalars().all()
+        
+        # Cache result (only for first page)
+        if use_cache and skip == 0:
+            await cache.set("products", company_id, "all", active_only, value=products, ttl=900)  # 15 minutes
+        
+        return products
     
     async def get_by_category_id(
         self,
         category_id: UUID,
         skip: int = 0,
         limit: int = 100,
-        active_only: bool = True
+        active_only: bool = True,
+        use_cache: bool = True
     ) -> List[Product]:
         """Get products by category ID with pagination"""
+        cache = await get_cache_service()
+        
+        # Try cache first (only for first page, no skip)
+        if use_cache and skip == 0:
+            cached = await cache.get("products_by_category", category_id, active_only)
+            if cached is not None:
+                return cached
+        
         query = select(Product).where(Product.category_id == category_id)
         
         if active_only:
@@ -61,7 +93,13 @@ class ProductRepository:
         query = query.order_by(Product.created_at.desc()).offset(skip).limit(limit)
         
         result = await self.db.execute(query)
-        return result.scalars().all()
+        products = result.scalars().all()
+        
+        # Cache result (only for first page)
+        if use_cache and skip == 0:
+            await cache.set("products_by_category", category_id, active_only, value=products, ttl=900)
+        
+        return products
     
     async def search(
         self,
@@ -94,14 +132,35 @@ class ProductRepository:
         """Update product"""
         await self.db.commit()
         await self.db.refresh(product)
+        
+        # Invalidate cache for this company and category
+        cache = await get_cache_service()
+        await cache.delete("products", product.company_id, "all", True)
+        await cache.delete("products", product.company_id, "all", False)
+        if product.category_id:
+            await cache.delete("products_by_category", product.category_id, True)
+            await cache.delete("products_by_category", product.category_id, False)
+        
         return product
     
     async def delete(self, product_id: UUID) -> bool:
         """Delete product by ID"""
-        product = await self.get_by_id(product_id)
+        result = await self.db.execute(
+            select(Product).where(Product.id == product_id)
+        )
+        product = result.scalar_one_or_none()
         if product:
             await self.db.delete(product)
             await self.db.commit()
+            
+            # Invalidate cache for this company and category
+            cache = await get_cache_service()
+            await cache.delete("products", product.company_id, "all", True)
+            await cache.delete("products", product.company_id, "all", False)
+            if product.category_id:
+                await cache.delete("products_by_category", product.category_id, True)
+                await cache.delete("products_by_category", product.category_id, False)
+            
             return True
         return False
 
@@ -117,6 +176,11 @@ class ProductCategoryRepository:
         self.db.add(category)
         await self.db.commit()
         await self.db.refresh(category)
+        
+        # Invalidate cache for this company
+        cache = await get_cache_service()
+        await cache.delete("categories", category.company_id)
+        
         return category
     
     async def get_by_id(self, category_id: UUID) -> Optional[ProductCategory]:
@@ -130,14 +194,29 @@ class ProductCategoryRepository:
         self,
         company_id: UUID,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
+        use_cache: bool = True
     ) -> List[ProductCategory]:
         """Get categories by company ID with pagination"""
+        cache = await get_cache_service()
+        
+        # Try cache first (only for first page, no skip)
+        if use_cache and skip == 0:
+            cached = await cache.get("categories", company_id)
+            if cached is not None:
+                return cached
+        
         query = select(ProductCategory).where(ProductCategory.company_id == company_id)
         query = query.order_by(ProductCategory.name.asc()).offset(skip).limit(limit)
         
         result = await self.db.execute(query)
-        return result.scalars().all()
+        categories = result.scalars().all()
+        
+        # Cache result (only for first page)
+        if use_cache and skip == 0:
+            await cache.set("categories", company_id, value=categories, ttl=900)
+        
+        return categories
     
     async def get_root_categories(self, company_id: UUID) -> List[ProductCategory]:
         """Get root categories (no parent) for a company"""
@@ -164,13 +243,26 @@ class ProductCategoryRepository:
         """Update category"""
         await self.db.commit()
         await self.db.refresh(category)
+        
+        # Invalidate cache for this company
+        cache = await get_cache_service()
+        await cache.delete("categories", category.company_id)
+        
         return category
     
     async def delete(self, category_id: UUID) -> bool:
         """Delete category by ID"""
-        category = await self.get_by_id(category_id)
+        result = await self.db.execute(
+            select(ProductCategory).where(ProductCategory.id == category_id)
+        )
+        category = result.scalar_one_or_none()
         if category:
             await self.db.delete(category)
             await self.db.commit()
+            
+            # Invalidate cache for this company
+            cache = await get_cache_service()
+            await cache.delete("categories", category.company_id)
+            
             return True
         return False

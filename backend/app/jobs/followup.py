@@ -1,7 +1,7 @@
 """Background job: follow-up inactive bot conversations and close them after max retries."""
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
@@ -60,19 +60,6 @@ async def _process_stale_states(db: AsyncSession) -> None:
             logger.info(
                 f"[followup] Closing conversation for {state.phone_number} "
                 f"after {state.retry_count} retries without response."
-            )
-            # Find open conversation and close it
-            conv_result = await db.execute(
-                select(Conversation).where(
-                    and_(
-                        Conversation.company_id == company_id,
-                        Conversation.customer_id.in_(
-                            select(Conversation.customer_id).where(
-                                Conversation.company_id == company_id
-                            )
-                        ),
-                    )
-                ).limit(1)
             )
             # Find the conversation via the customer phone number
             from app.customers.models import Customer

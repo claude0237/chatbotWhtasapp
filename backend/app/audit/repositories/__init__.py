@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, desc
-from app.audit.models import AuditLog, AuditActionEnum
+from app.audit.models import AuditLog
 from uuid import UUID
 
 

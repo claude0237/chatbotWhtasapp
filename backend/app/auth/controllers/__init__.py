@@ -19,7 +19,7 @@ async def register(
 ):
     """Register a new user"""
     try:
-        user = await auth_service.register(user_data)
+        await auth_service.register(user_data)
         # Auto-login after registration
         tokens = await auth_service.login(user_data.email, user_data.password)
         return tokens

@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.database import get_db
-from app.auth.dependencies import get_current_user, require_super_admin
+from app.auth.dependencies import require_super_admin
 from app.companies.models import MLQuota, SubscriptionPlan
 from pydantic import BaseModel
 

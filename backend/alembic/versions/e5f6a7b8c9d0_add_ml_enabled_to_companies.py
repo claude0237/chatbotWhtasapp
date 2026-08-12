@@ -16,7 +16,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column('companies', sa.Column('ml_enabled', sa.Boolean(), nullable=False, server_default='false'))
+    op.execute("""
+        DO $$
+        BEGIN
+            ALTER TABLE companies ADD COLUMN IF NOT EXISTS ml_enabled BOOLEAN DEFAULT false NOT NULL;
+        EXCEPTION
+            WHEN duplicate_column THEN NULL;
+        END $$;
+    """)
 
 
 def downgrade() -> None:

@@ -16,7 +16,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column('bot_configurations', sa.Column('business_hours', sa.JSON(), nullable=True))
+    op.execute("""
+        DO $$
+        BEGIN
+            ALTER TABLE bot_configurations ADD COLUMN IF NOT EXISTS business_hours JSON;
+        EXCEPTION
+            WHEN duplicate_column THEN NULL;
+        END $$;
+    """)
 
 
 def downgrade() -> None:

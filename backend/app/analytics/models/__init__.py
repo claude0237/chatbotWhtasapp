@@ -1,7 +1,7 @@
 """Analytics Models"""
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, JSON, Float, Integer, ForeignKey, Text, Boolean, Enum as SQLEnum
+from sqlalchemy import Column, String, DateTime, JSON, Float, ForeignKey, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.database import Base
