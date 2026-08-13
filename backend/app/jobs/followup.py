@@ -12,8 +12,9 @@ from app.bot.models import BotConversationState, BotConfiguration
 from app.bot.repositories import BotConversationStateRepository, BotConfigurationRepository
 from app.conversations.models import Conversation, ConversationStatus
 from app.whatsapp.services import WhatsAppService
+from app.logging_config import log_with_context
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("app.jobs")
 
 _POLL_INTERVAL_SECONDS = 60
 
@@ -57,6 +58,14 @@ async def _process_stale_states(db: AsyncSession) -> None:
 
         # ── Max retries reached → close conversation ──────────────────────
         if state.retry_count >= max_retries:
+            log_with_context(
+                logger,
+                logging.INFO,
+                "CELERY_JOB_MAX_RETRIES_REACHED",
+                phone_number=state.phone_number,
+                retry_count=state.retry_count,
+                company_id=str(company_id)
+            )
             logger.info(
                 f"[followup] Closing conversation for {state.phone_number} "
                 f"after {state.retry_count} retries without response."
@@ -108,6 +117,15 @@ async def _process_stale_states(db: AsyncSession) -> None:
             await db.commit()
             continue
 
+        log_with_context(
+            logger,
+            logging.INFO,
+            "CELERY_JOB_STARTED",
+            phone_number=state.phone_number,
+            retry_count=state.retry_count + 1,
+            max_retries=max_retries,
+            company_id=str(company_id)
+        )
         logger.info(
             f"[followup] Sending retry {state.retry_count + 1}/{max_retries} "
             f"to {state.phone_number}"
@@ -119,7 +137,23 @@ async def _process_stale_states(db: AsyncSession) -> None:
                 phone_number=state.phone_number,
                 content=last_message,
             )
+            log_with_context(
+                logger,
+                logging.INFO,
+                "CELERY_JOB_SUCCESS",
+                phone_number=state.phone_number,
+                company_id=str(company_id)
+            )
         except Exception as exc:
+            log_with_context(
+                logger,
+                logging.ERROR,
+                "CELERY_JOB_FAILED",
+                phone_number=state.phone_number,
+                company_id=str(company_id),
+                error_message=str(exc),
+                exc_info=True
+            )
             logger.warning(f"[followup] Failed to send follow-up to {state.phone_number}: {exc}")
 
         state.retry_count = (state.retry_count or 0) + 1

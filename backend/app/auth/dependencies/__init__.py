@@ -4,13 +4,16 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+import logging
 
 from app.database import get_db
 from app.auth.services import AuthService
 from app.users.models import User, UserRoleEnum
+from app.logging_config import log_security
 
 
 security = HTTPBearer()
+logger = logging.getLogger("app.auth")
 
 
 async def get_auth_service(db: AsyncSession = Depends(get_db)) -> AuthService:
@@ -27,6 +30,12 @@ async def get_current_user(
     user = await auth_service.verify_token(token)
     
     if not user:
+        log_security(
+            logger,
+            logging.WARNING,
+            "AUTH_PERMISSION_DENIED",
+            reason="Invalid authentication credentials"
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",

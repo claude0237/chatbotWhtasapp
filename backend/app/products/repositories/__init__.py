@@ -40,18 +40,10 @@ class ProductRepository:
         skip: int = 0,
         limit: int = 100,
         active_only: bool = True,
-        use_cache: bool = True
+        use_cache: bool = False
     ) -> List[Product]:
         """Get products by company ID with pagination"""
-        cache = await get_cache_service()
-        
-        # Try cache first (only for first page, no skip)
-        if use_cache and skip == 0:
-            cache_key = f"products:{company_id}:all:{active_only}"
-            cached = await cache.get("products", company_id, "all", active_only)
-            if cached is not None:
-                return cached
-        
+        # Cache disabled for SQLAlchemy objects to avoid serialization issues
         query = select(Product).where(Product.company_id == company_id)
         
         if active_only:
@@ -62,10 +54,6 @@ class ProductRepository:
         result = await self.db.execute(query)
         products = result.scalars().all()
         
-        # Cache result (only for first page)
-        if use_cache and skip == 0:
-            await cache.set("products", company_id, "all", active_only, value=products, ttl=900)  # 15 minutes
-        
         return products
     
     async def get_by_category_id(
@@ -74,30 +62,13 @@ class ProductRepository:
         skip: int = 0,
         limit: int = 100,
         active_only: bool = True,
-        use_cache: bool = True
+        use_cache: bool = False
     ) -> List[Product]:
         """Get products by category ID with pagination"""
-        cache = await get_cache_service()
-        
-        # Try cache first (only for first page, no skip)
-        if use_cache and skip == 0:
-            cached = await cache.get("products_by_category", category_id, active_only)
-            if cached is not None:
-                return cached
-        
-        query = select(Product).where(Product.category_id == category_id)
-        
-        if active_only:
-            query = query.where(Product.is_active == True)
-        
-        query = query.order_by(Product.created_at.desc()).offset(skip).limit(limit)
-        
-        result = await self.db.execute(query)
+        result = await self.db.execute(
+            select(Product).where(Product.category_id == category_id)
+        )
         products = result.scalars().all()
-        
-        # Cache result (only for first page)
-        if use_cache and skip == 0:
-            await cache.set("products_by_category", category_id, active_only, value=products, ttl=900)
         
         return products
     
@@ -195,26 +166,15 @@ class ProductCategoryRepository:
         company_id: UUID,
         skip: int = 0,
         limit: int = 100,
-        use_cache: bool = True
+        use_cache: bool = False
     ) -> List[ProductCategory]:
         """Get categories by company ID with pagination"""
-        cache = await get_cache_service()
-        
-        # Try cache first (only for first page, no skip)
-        if use_cache and skip == 0:
-            cached = await cache.get("categories", company_id)
-            if cached is not None:
-                return cached
-        
+        # Cache disabled for SQLAlchemy objects to avoid serialization issues
         query = select(ProductCategory).where(ProductCategory.company_id == company_id)
         query = query.order_by(ProductCategory.name.asc()).offset(skip).limit(limit)
         
         result = await self.db.execute(query)
         categories = result.scalars().all()
-        
-        # Cache result (only for first page)
-        if use_cache and skip == 0:
-            await cache.set("categories", company_id, value=categories, ttl=900)
         
         return categories
     

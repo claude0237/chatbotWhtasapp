@@ -18,6 +18,7 @@ from app.bot.engine import BotEngine, HANDOFF_PREFIX
 from app.bot.repositories import BotConversationStateRepository
 from app.conversations.repositories import CustomerRepository, ConversationRepository, MessageRepository
 from app.conversations.models import Conversation, Message, ConversationStatus, SenderType, ConversationMessageType, ConversationMessageStatus
+from app.logging_config import log_whatsapp, log_with_context
 
 
 class WhatsAppService:
@@ -37,6 +38,13 @@ class WhatsAppService:
         """Fetch ALL WhatsApp credentials for a specific company from ChannelCredential table"""
         channel = await self.channel_repository.get_by_type(company_id, ChannelType.WHATSAPP)
         if not channel:
+            log_whatsapp(
+                logger,
+                logging.ERROR,
+                "WHATSAPP_CREDENTIALS_INVALID",
+                company_id=str(company_id),
+                reason="No WhatsApp channel configured"
+            )
             raise ValueError(f"No WhatsApp channel configured for company {company_id}")
 
         configs = await self.channel_config_repository.get_by_channel_id(channel.id)
@@ -70,8 +78,22 @@ class WhatsAppService:
                 access_token = raw_token
 
         if not phone_number_id:
+            log_whatsapp(
+                logger,
+                logging.ERROR,
+                "WHATSAPP_CREDENTIALS_INVALID",
+                company_id=str(company_id),
+                reason="phone_number_id not configured"
+            )
             raise ValueError(f"WhatsApp phone_number_id not configured for company {company_id}")
         if not access_token:
+            log_whatsapp(
+                logger,
+                logging.ERROR,
+                "WHATSAPP_CREDENTIALS_INVALID",
+                company_id=str(company_id),
+                reason="access_token not configured"
+            )
             raise ValueError(f"WhatsApp access_token not configured for company {company_id}")
 
         return {
@@ -136,15 +158,47 @@ class WhatsAppService:
                     message.status = MessageStatus.SENT
                     message.sent_at = datetime.utcnow()
                     await self.message_repository.update(message)
+                    
+                    log_whatsapp(
+                        logger,
+                        logging.INFO,
+                        "WHATSAPP_SEND_SUCCESS",
+                        company_id=str(company_id),
+                        phone_number=phone_number,
+                        message_id=whatsapp_message_id,
+                        status_code=response.status_code
+                    )
                 else:
                     logger.warning(f"Meta API send_text error {response.status_code}: {response.text}")
                     message.status = MessageStatus.FAILED
                     await self.message_repository.update(message)
                     
+                    log_whatsapp(
+                        logger,
+                        logging.ERROR,
+                        "WHATSAPP_API_ERROR",
+                        company_id=str(company_id),
+                        phone_number=phone_number,
+                        status_code=response.status_code,
+                        error_message=response.text
+                    )
+                    
         except Exception as e:
-            logger.error(f"WhatsApp send_text exception: {str(e)}")
+            error_msg = str(e) if str(e) else f"{type(e).__name__}"
+            logger.error(f"WhatsApp send_text exception: {error_msg}", exc_info=True)
             message.status = MessageStatus.FAILED
             await self.message_repository.update(message)
+            
+            log_whatsapp(
+                logger,
+                logging.ERROR,
+                "WHATSAPP_SEND_FAILED",
+                company_id=str(company_id),
+                phone_number=phone_number,
+                error_message=error_msg,
+                error_type=type(e).__name__,
+                exc_info=True
+            )
             raise e
         
         return message
@@ -162,6 +216,13 @@ class WhatsAppService:
         # Get template
         template = await self.template_repository.get_by_name(company_id, template_name)
         if not template:
+            log_whatsapp(
+                logger,
+                logging.ERROR,
+                "WHATSAPP_TEMPLATE_NOT_FOUND",
+                company_id=str(company_id),
+                template_name=template_name
+            )
             raise ValueError(f"Template {template_name} not found")
         
         # Create message record
@@ -225,6 +286,18 @@ class WhatsAppService:
         """Process incoming webhook event"""
         import logging
         _log = logging.getLogger(__name__)
+        
+        # Log webhook received
+        entry_count = len(payload.get("entry", []))
+        log_whatsapp(
+            logger,
+            logging.INFO,
+            "WHATSAPP_WEBHOOK_RECEIVED",
+            company_id=str(company_id),
+            event_type=payload.get("entry", [{}])[0].get("changes", [{}])[0].get("field", "unknown"),
+            entry_count=entry_count
+        )
+        
         # Create webhook event record
         event = WebhookEvent(
             company_id=company_id,
@@ -242,6 +315,16 @@ class WhatsAppService:
         except Exception as e:
             _log.error(f"Webhook processing FAILED: {type(e).__name__}: {e}", exc_info=True)
             await self.webhook_repository.mark_as_failed(event.id, str(e))
+            
+            log_whatsapp(
+                logger,
+                logging.ERROR,
+                "WHATSAPP_WEBHOOK_PROCESSING_FAILED",
+                company_id=str(company_id),
+                webhook_id=str(event.id),
+                error_message=str(e),
+                exc_info=True
+            )
             raise e
         
         return event

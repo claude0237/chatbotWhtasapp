@@ -2,7 +2,19 @@
 from typing import Optional, Any, List
 import json
 import redis.asyncio as redis
+import logging
+from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
+from app.logging_config import log_with_context
+
+
+class SQLAlchemyEncoder(json.JSONEncoder):
+    """Custom JSON encoder for SQLAlchemy objects"""
+    def default(self, obj):
+        if isinstance(obj, DeclarativeBase):
+            # Convert SQLAlchemy model to dictionary
+            return {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
+        return super().default(obj)
 
 
 class CacheService:
@@ -10,11 +22,28 @@ class CacheService:
     
     def __init__(self, redis_client: Optional[redis.Redis] = None):
         self.redis_client = redis_client
+        self.logger = logging.getLogger("app.cache")
     
     async def _ensure_client(self):
         """Lazily initialize Redis client"""
         if self.redis_client is None and settings.redis_cache_url:
-            self.redis_client = redis.from_url(settings.redis_cache_url, decode_responses=True)
+            try:
+                self.redis_client = redis.from_url(settings.redis_cache_url, decode_responses=True)
+                log_with_context(
+                    self.logger,
+                    logging.INFO,
+                    "REDIS_CONNECTION_SUCCESS",
+                    url=settings.redis_cache_url
+                )
+            except Exception as e:
+                log_with_context(
+                    self.logger,
+                    logging.ERROR,
+                    "REDIS_CONNECTION_FAILED",
+                    url=settings.redis_cache_url,
+                    error_message=str(e),
+                    exc_info=True
+                )
     
     def _make_key(self, prefix: str, *parts: Any) -> str:
         """Generate cache key from prefix and parts"""
@@ -31,9 +60,22 @@ class CacheService:
             key = self._make_key(prefix, *parts)
             cached = await self.redis_client.get(key)
             if cached:
+                log_with_context(
+                    self.logger,
+                    logging.INFO,
+                    "REDIS_GET_SUCCESS",
+                    key=key
+                )
                 return json.loads(cached)
-        except Exception:
-            pass
+        except Exception as e:
+            log_with_context(
+                self.logger,
+                logging.ERROR,
+                "REDIS_GET_FAILED",
+                key=self._make_key(prefix, *parts),
+                error_message=str(e),
+                exc_info=True
+            )
         
         return None
     
@@ -45,9 +87,25 @@ class CacheService:
         
         try:
             key = self._make_key(prefix, *parts)
-            await self.redis_client.setex(key, ttl, json.dumps(value))
+            await self.redis_client.setex(key, ttl, json.dumps(value, cls=SQLAlchemyEncoder))
+            log_with_context(
+                self.logger,
+                logging.INFO,
+                "REDIS_SET_SUCCESS",
+                key=key,
+                ttl=ttl
+            )
             return True
-        except Exception:
+        except Exception as e:
+            log_with_context(
+                self.logger,
+                logging.ERROR,
+                "REDIS_SET_FAILED",
+                key=self._make_key(prefix, *parts),
+                ttl=ttl,
+                error_message=str(e),
+                exc_info=True
+            )
             return False
     
     async def delete(self, prefix: str, *parts: Any) -> bool:

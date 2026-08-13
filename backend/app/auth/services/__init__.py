@@ -5,11 +5,13 @@ from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
+import logging
 
 from app.config import settings
 from app.users.models import User
 from app.users.repositories import UserRepository
 from app.users.schemas import UserCreate, TokenResponse
+from app.logging_config import log_security, log_with_context
 
 
 class AuthService:
@@ -19,6 +21,7 @@ class AuthService:
         self.db = db
         self.user_repository = UserRepository(db)
         self.pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+        self.logger = logging.getLogger("app.auth")
     
     def hash_password(self, password: str) -> str:
         """Hash a password"""
@@ -63,6 +66,13 @@ class AuthService:
         # Check if email already exists
         existing_user = await self.user_repository.get_by_email(user_data.email)
         if existing_user:
+            log_security(
+                self.logger,
+                logging.WARNING,
+                "AUTH_REGISTER_FAILED",
+                email=user_data.email,
+                reason="Email already registered"
+            )
             raise ValueError("Email already registered")
         
         # Hash password
@@ -80,21 +90,56 @@ class AuthService:
             avatar_url=user_data.avatar_url
         )
         
-        return await self.user_repository.create(user)
+        created_user = await self.user_repository.create(user)
+        
+        log_security(
+            self.logger,
+            logging.INFO,
+            "AUTH_REGISTER_SUCCESS",
+            user_id=str(created_user.id),
+            email=user_data.email,
+            company_id=str(user_data.company_id),
+            role=user_data.role.value
+        )
+        
+        return created_user
     
     async def login(self, email: str, password: str) -> TokenResponse:
         """Login user and return tokens"""
         # Get user by email
         user = await self.user_repository.get_by_email(email)
         if not user:
+            log_security(
+                self.logger,
+                logging.WARNING,
+                "AUTH_LOGIN_FAILED",
+                email=email,
+                reason="User not found"
+            )
             raise ValueError("Invalid credentials")
         
         # Verify password
         if not self.verify_password(password, user.password_hash):
+            log_security(
+                self.logger,
+                logging.WARNING,
+                "AUTH_LOGIN_FAILED",
+                email=email,
+                user_id=str(user.id),
+                reason="Invalid password"
+            )
             raise ValueError("Invalid credentials")
         
         # Check if user is active
         if not user.is_active:
+            log_security(
+                self.logger,
+                logging.WARNING,
+                "AUTH_LOGIN_FAILED",
+                email=email,
+                user_id=str(user.id),
+                reason="User account is inactive"
+            )
             raise ValueError("User account is inactive")
         
         # Update last login
@@ -108,6 +153,16 @@ class AuthService:
             data={"sub": str(user.id)}
         )
         
+        log_security(
+            self.logger,
+            logging.INFO,
+            "AUTH_LOGIN_SUCCESS",
+            user_id=str(user.id),
+            email=email,
+            company_id=str(user.company_id),
+            role=user.role.value
+        )
+        
         return TokenResponse(
             access_token=access_token,
             refresh_token=refresh_token
@@ -117,14 +172,33 @@ class AuthService:
         """Refresh access token using refresh token"""
         payload = self.decode_token(refresh_token)
         if not payload or payload.get("type") != "refresh":
+            log_security(
+                self.logger,
+                logging.WARNING,
+                "AUTH_TOKEN_REFRESH_FAILED",
+                reason="Invalid refresh token type"
+            )
             raise ValueError("Invalid refresh token")
         
         user_id = payload.get("sub")
         if not user_id:
+            log_security(
+                self.logger,
+                logging.WARNING,
+                "AUTH_TOKEN_REFRESH_FAILED",
+                reason="No user_id in token"
+            )
             raise ValueError("Invalid refresh token")
         
         user = await self.user_repository.get_by_id(UUID(user_id))
         if not user or not user.is_active:
+            log_security(
+                self.logger,
+                logging.WARNING,
+                "AUTH_TOKEN_REFRESH_FAILED",
+                user_id=user_id,
+                reason="User not found or inactive"
+            )
             raise ValueError("Invalid refresh token")
         
         # Create new tokens
@@ -133,6 +207,15 @@ class AuthService:
         )
         new_refresh_token = self.create_refresh_token(
             data={"sub": str(user.id)}
+        )
+        
+        log_security(
+            self.logger,
+            logging.INFO,
+            "AUTH_TOKEN_REFRESH",
+            user_id=str(user.id),
+            email=user.email,
+            company_id=str(user.company_id)
         )
         
         return TokenResponse(
@@ -144,14 +227,33 @@ class AuthService:
         """Verify token and return user"""
         payload = self.decode_token(token)
         if not payload or payload.get("type") != "access":
+            log_security(
+                self.logger,
+                logging.WARNING,
+                "AUTH_TOKEN_EXPIRED",
+                reason="Invalid or expired token"
+            )
             return None
         
         user_id = payload.get("sub")
         if not user_id:
+            log_security(
+                self.logger,
+                logging.WARNING,
+                "AUTH_TOKEN_EXPIRED",
+                reason="No user_id in token"
+            )
             return None
         
         user = await self.user_repository.get_by_id(UUID(user_id))
         if not user or not user.is_active:
+            log_security(
+                self.logger,
+                logging.WARNING,
+                "AUTH_TOKEN_EXPIRED",
+                user_id=user_id,
+                reason="User not found or inactive"
+            )
             return None
         
         return user

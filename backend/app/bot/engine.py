@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
+from app.logging_config import log_bot
 
 # Sentinel prefix embedded in the return value when a handoff step fires.
 # Format: "__HANDOFF__:<message to send to client>"
@@ -63,6 +64,13 @@ class BotEngine:
         """
         config = await self.config_repo.get_by_company_id(company_id)
         if not config:
+            log_bot(
+                logger,
+                logging.WARNING,
+                "BOT_SCENARIO_NOT_FOUND",
+                company_id=str(company_id),
+                reason="No bot configuration found"
+            )
             return None
 
         # Check if ML is enabled for the company and verify subscription plan
@@ -103,12 +111,28 @@ class BotEngine:
                     last_bot_message=first_message,
                 )
                 await self.state_repo.create(new_state)
+                log_bot(
+                    logger,
+                    logging.INFO,
+                    "BOT_SCENARIO_STARTED",
+                    company_id=str(company_id),
+                    phone_number=phone_number,
+                    scenario_name=scenario.name
+                )
                 return first_message
 
         # ── 3. Keyword match? (only in NATIVE mode) ─────────────────────────────
         if config.bot_type == BotType.NATIVE:
             keyword_obj = await self.keyword_repo.get_by_keyword(config.id, normalized)
             if keyword_obj:
+                log_bot(
+                    logger,
+                    logging.INFO,
+                    "BOT_KEYWORD_MATCH",
+                    company_id=str(company_id),
+                    phone_number=phone_number,
+                    keyword=normalized
+                )
                 return self._interpolate(keyword_obj.response, {})
 
         # ── 4. ML Processing (only if ML mode and enabled) ────────────────────
@@ -116,6 +140,13 @@ class BotEngine:
             # Check ML quota before processing
             if not await self._check_and_update_ml_usage(company_id, company):
                 # Quota exceeded
+                log_bot(
+                    logger,
+                    logging.WARNING,
+                    "BOT_ML_QUOTA_EXCEEDED",
+                    company_id=str(company_id),
+                    phone_number=phone_number
+                )
                 return self._interpolate(config.unknown_message or "Service ML indisponible. Quota dépassé.", {})
 
             try:
@@ -135,14 +166,42 @@ class BotEngine:
 
                 # Check confidence threshold
                 if ml_result.get("confidence", 0) >= settings.ml_default_confidence_threshold:
+                    log_bot(
+                        logger,
+                        logging.INFO,
+                        "BOT_PROCESSING_SUCCESS",
+                        company_id=str(company_id),
+                        phone_number=phone_number,
+                        bot_type="ML",
+                        reply_length=len(ml_result.get("response", "")),
+                        confidence=ml_result.get("confidence", 0)
+                    )
                     return ml_result.get("response", "Je n'ai pas compris votre message.")
                 else:
                     # Confidence too low
                     logger.info(f"ML confidence too low: {ml_result.get('confidence', 0)} < {settings.ml_default_confidence_threshold}")
+                    log_bot(
+                        logger,
+                        logging.WARNING,
+                        "BOT_ML_CONFIDENCE_LOW",
+                        company_id=str(company_id),
+                        phone_number=phone_number,
+                        confidence=ml_result.get("confidence", 0),
+                        threshold=settings.ml_default_confidence_threshold
+                    )
                     return "Je n'ai pas compris votre message. Veuillez reformuler."
             except Exception as e:
                 # If ML fails
                 logger.error(f"ML processing failed: {str(e)}")
+                log_bot(
+                    logger,
+                    logging.ERROR,
+                    "BOT_ML_PROVIDER_ERROR",
+                    company_id=str(company_id),
+                    phone_number=phone_number,
+                    error_message=str(e),
+                    exc_info=True
+                )
                 return "Une erreur est survenue avec le service ML. Veuillez réessayer."
 
         # ── 5. Native Fallback (unknown_message) ─────────────────────────────

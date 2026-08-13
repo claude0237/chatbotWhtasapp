@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, desc
 from app.audit.models import AuditLog
 from uuid import UUID
+import logging
+from app.logging_config import log_security
 
 
 class AuditLogRepository:
@@ -12,6 +14,7 @@ class AuditLogRepository:
     
     def __init__(self, db: AsyncSession):
         self.db = db
+        self.logger = logging.getLogger("app.audit")
     
     async def create(
         self,
@@ -39,6 +42,20 @@ class AuditLogRepository:
         self.db.add(audit_log)
         await self.db.commit()
         await self.db.refresh(audit_log)
+        
+        # Log audit event to security log
+        log_security(
+            self.logger,
+            logging.INFO,
+            "AUDIT_USER_ACTION",
+            user_id=str(user_id),
+            company_id=str(company_id),
+            action=action,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            ip_address=ip_address
+        )
+        
         return audit_log
     
     async def get_by_company(

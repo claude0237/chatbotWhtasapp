@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # Server
     host: str = "0.0.0.0"
     port: int = 8000
-    workers: int = 4
+    workers: int = 6
     public_url: str = "http://localhost:8000"  # Public URL for webhooks (use Cloudflare tunnel in production)
     
     # Database
@@ -98,6 +98,7 @@ class Settings(BaseSettings):
     # Monitoring
     sentry_dsn: str = ""
     log_level: str = "INFO"
+    log_dir: str = "logs"
     
     class Config:
         env_file = ".env"

@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.jobs.followup import run_followup_job
 from app.config import settings
+from app.logging_config import setup_logging
+from app.middleware.logging import LoggingMiddleware
 from app.auth.routes import router as auth_router
 from app.companies.routes import router as companies_router
 from app.companies.controllers.ml_quotas import router as ml_quotas_router
@@ -26,6 +28,8 @@ from app.upload import router as upload_router
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
+    # Setup logging
+    setup_logging()
     task = asyncio.create_task(run_followup_job())
     yield
     task.cancel()
@@ -53,6 +57,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add logging middleware
+app.add_middleware(LoggingMiddleware)
 
 # Include routers
 app.include_router(auth_router)

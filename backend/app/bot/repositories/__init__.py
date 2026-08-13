@@ -28,24 +28,13 @@ class BotConfigurationRepository:
         )
         return result.scalar_one_or_none()
     
-    async def get_by_company_id(self, company_id: UUID, use_cache: bool = True) -> Optional[BotConfiguration]:
+    async def get_by_company_id(self, company_id: UUID, use_cache: bool = False) -> Optional[BotConfiguration]:
         """Get bot configuration by company ID"""
-        cache = await get_cache_service()
-        
-        # Try cache first
-        if use_cache:
-            cached = await cache.get("bot_config", company_id)
-            if cached is not None:
-                return cached
-        
+        # Cache disabled for SQLAlchemy objects to avoid serialization issues
         result = await self.db.execute(
             select(BotConfiguration).where(BotConfiguration.company_id == company_id)
         )
         config = result.scalar_one_or_none()
-        
-        # Cache result
-        if use_cache and config:
-            await cache.set("bot_config", company_id, value=config, ttl=600)  # 10 minutes
         
         return config
     
@@ -111,16 +100,9 @@ class BotScenarioRepository:
         )
         return result.scalars().all()
     
-    async def get_by_trigger_keyword(self, bot_configuration_id: UUID, trigger_keyword: str, use_cache: bool = True) -> Optional[BotScenario]:
-        """Get scenario by trigger keyword for a bot configuration"""
-        cache = await get_cache_service()
-        
-        # Try cache first
-        if use_cache:
-            cached = await cache.get("scenario_trigger", bot_configuration_id, trigger_keyword.upper())
-            if cached is not None:
-                return cached
-        
+    async def get_by_trigger_keyword(self, bot_configuration_id: UUID, trigger_keyword: str, use_cache: bool = False) -> Optional[BotScenario]:
+        """Get scenario by trigger keyword"""
+        # Cache disabled for SQLAlchemy objects to avoid serialization issues
         result = await self.db.execute(
             select(BotScenario).where(
                 and_(
@@ -131,10 +113,6 @@ class BotScenarioRepository:
             )
         )
         scenario = result.scalar_one_or_none()
-        
-        # Cache result
-        if use_cache and scenario:
-            await cache.set("scenario_trigger", bot_configuration_id, trigger_keyword.upper(), value=scenario, ttl=900)
         
         return scenario
     
@@ -210,16 +188,9 @@ class BotKeywordRepository:
         )
         return result.scalars().all()
     
-    async def get_by_keyword(self, bot_configuration_id: UUID, keyword: str, use_cache: bool = True) -> Optional[BotKeyword]:
+    async def get_by_keyword(self, bot_configuration_id: UUID, keyword: str, use_cache: bool = False) -> Optional[BotKeyword]:
         """Get keyword by keyword text for a bot configuration"""
-        cache = await get_cache_service()
-        
-        # Try cache first
-        if use_cache:
-            cached = await cache.get("keyword", bot_configuration_id, keyword.upper())
-            if cached is not None:
-                return cached
-        
+        # Cache disabled for SQLAlchemy objects to avoid serialization issues
         result = await self.db.execute(
             select(BotKeyword).where(
                 and_(
@@ -229,10 +200,6 @@ class BotKeywordRepository:
             )
         )
         kw = result.scalar_one_or_none()
-        
-        # Cache result
-        if use_cache and kw:
-            await cache.set("keyword", bot_configuration_id, keyword.upper(), value=kw, ttl=900)
         
         return kw
     
