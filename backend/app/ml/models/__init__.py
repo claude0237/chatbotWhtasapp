@@ -1,9 +1,10 @@
 """ML Models for Document Ingestion and Embeddings"""
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Boolean, Text, ForeignKey, Enum as SQLEnum, JSON, Integer
+from sqlalchemy import Column, String, DateTime, Boolean, Text, ForeignKey, Enum as SQLEnum, JSON, Integer, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+from pgvector.sqlalchemy import Vector
 from app.database import Base
 import enum
 
@@ -73,19 +74,29 @@ class Document(Base):
         return f"<Document(id={self.id}, file_name={self.file_name}, status={self.status})>"
 
 
+class SourceType(str, enum.Enum):
+    """Vector source type"""
+    DOCUMENT = "DOCUMENT"
+    KNOWLEDGE_BASE = "KNOWLEDGE_BASE"
+
+
 class DocumentChunk(Base):
     """Document chunk model for embedding storage"""
     
     __tablename__ = "document_chunks"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True)
+    company_id = Column(UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"), nullable=True, index=True)
     
     content = Column(Text, nullable=False)
-    chunk_index = Column(Integer, nullable=False)
+    chunk_index = Column(Integer, nullable=False, default=0)
     
-    # Embedding vector (stored as JSON array, pgvector used for similarity search in queries)
-    embedding = Column(JSON, nullable=True)
+    source_type = Column(SQLEnum(SourceType), default=SourceType.DOCUMENT, nullable=False)
+    source_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+    
+    # Embedding vector (pgvector)
+    embedding = Column(Vector(384), nullable=True)
     
     # Metadata
     extra_data = Column(JSON, nullable=True)
@@ -94,8 +105,16 @@ class DocumentChunk(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
+    # Relationships
+    company = relationship("Company", backref="document_chunks")
+    
+    # Composite index for company + source_type
+    __table_args__ = (
+        Index('ix_document_chunks_company_source', 'company_id', 'source_type'),
+    )
+    
     def __repr__(self):
-        return f"<DocumentChunk(id={self.id}, document_id={self.document_id}, chunk_index={self.chunk_index})>"
+        return f"<DocumentChunk(id={self.id}, company_id={self.company_id}, source_type={self.source_type}, chunk_index={self.chunk_index})>"
 
 
 class IngestionJob(Base):

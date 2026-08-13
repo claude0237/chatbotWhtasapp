@@ -4,7 +4,7 @@ from uuid import UUID
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ml.models import Document, DocumentChunk, IngestionJob, FileType, DocumentStatus, IngestionJobStatus
+from app.ml.models import Document, DocumentChunk, IngestionJob, FileType, DocumentStatus, IngestionJobStatus, SourceType
 from app.ml.repositories import DocumentRepository, DocumentChunkRepository, IngestionJobRepository
 from app.ml.extractors import get_extractor, TextChunker
 from app.ml.embeddings import get_embedding_provider, get_redis_client, EmbeddingService
@@ -76,7 +76,10 @@ class KnowledgeIngestionService:
             chunk_records = []
             for idx, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
                 chunk_record = DocumentChunk(
+                    company_id=document.company_id,
                     document_id=document.id,
+                    source_type=SourceType.DOCUMENT,
+                    source_id=document.id,
                     content=chunk,
                     chunk_index=idx,
                     embedding=embedding
@@ -155,7 +158,10 @@ class KnowledgeIngestionService:
                     chunk_records = []
                     for idx, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
                         chunk_record = DocumentChunk(
+                            company_id=document.company_id,
                             document_id=document.id,
+                            source_type=SourceType.DOCUMENT,
+                            source_id=document.id,
                             content=chunk,
                             chunk_index=idx,
                             embedding=embedding
@@ -240,7 +246,10 @@ class KnowledgeIngestionService:
                     chunk_records = []
                     for idx, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
                         chunk_record = DocumentChunk(
+                            company_id=document.company_id,
                             document_id=document.id,
+                            source_type=SourceType.DOCUMENT,
+                            source_id=document.id,
                             content=chunk,
                             chunk_index=idx,
                             embedding=embedding

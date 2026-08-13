@@ -1,9 +1,9 @@
 """ML Repository"""
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from uuid import UUID
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.ml.models import Document, DocumentChunk, IngestionJob, DocumentStatus, IngestionJobStatus
+from app.ml.models import Document, DocumentChunk, IngestionJob, DocumentStatus, IngestionJobStatus, SourceType
 
 
 class DocumentRepository:
@@ -106,21 +106,70 @@ class DocumentChunkRepository:
         )
         return result.scalars().all()
     
-    async def get_chunks_with_embeddings(self, company_id: UUID, limit: int = 100) -> List[DocumentChunk]:
-        """Get chunks with embeddings for a company"""
+    async def search_similar(
+        self,
+        company_id: UUID,
+        embedding: List[float],
+        limit: int = 5,
+        threshold: float = 0.5
+    ) -> List[Tuple[DocumentChunk, float]]:
+        """Search similar chunks using pgvector cosine distance"""
+        # pgvector expects vector literal like '[0.1,0.2,...]'
+        embedding_str = "[" + ",".join(str(float(x)) for x in embedding) + "]"
+        
+        query = text("""
+            SELECT id, content, embedding, (embedding <=> :embedding::vector) as distance
+            FROM document_chunks
+            WHERE company_id = :company_id
+              AND (embedding <=> :embedding::vector) <= :threshold
+            ORDER BY embedding <=> :embedding::vector
+            LIMIT :limit
+        """)
+        
         result = await self.db.execute(
-            select(DocumentChunk)
-            .join(Document, DocumentChunk.document_id == Document.id)
-            .where(
+            query,
+            {
+                "company_id": str(company_id),
+                "embedding": embedding_str,
+                "threshold": threshold,
+                "limit": limit
+            }
+        )
+        
+        chunks = []
+        for row in result:
+            chunk = DocumentChunk(
+                id=row.id,
+                company_id=company_id,
+                content=row.content,
+                embedding=row.embedding
+            )
+            similarity = 1.0 - float(row.distance)
+            chunks.append((chunk, similarity))
+        
+        return chunks
+    
+    async def get_by_source(self, company_id: UUID, source_type: SourceType, source_id: UUID) -> Optional[DocumentChunk]:
+        """Get a chunk by its source (document or knowledge base entry)"""
+        result = await self.db.execute(
+            select(DocumentChunk).where(
                 and_(
-                    Document.company_id == company_id,
-                    DocumentChunk.embedding.isnot(None)
+                    DocumentChunk.company_id == company_id,
+                    DocumentChunk.source_type == source_type,
+                    DocumentChunk.source_id == source_id
                 )
             )
-            .order_by(DocumentChunk.created_at.desc())
-            .limit(limit)
         )
-        return result.scalars().all()
+        return result.scalar_one_or_none()
+    
+    async def delete_by_source(self, company_id: UUID, source_type: SourceType, source_id: UUID) -> bool:
+        """Delete all chunks for a specific source"""
+        chunk = await self.get_by_source(company_id, source_type, source_id)
+        if chunk:
+            await self.db.delete(chunk)
+            await self.db.commit()
+            return True
+        return False
     
     async def update(self, chunk: DocumentChunk) -> DocumentChunk:
         """Update chunk"""

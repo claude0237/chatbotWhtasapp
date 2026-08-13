@@ -2,9 +2,13 @@
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
+import logging
 
 from app.knowledge.models import KnowledgeBase, KnowledgeCategory, SourceType
 from app.knowledge.repositories import KnowledgeBaseRepository, KnowledgeCategoryRepository
+from app.ml.models import DocumentChunk, SourceType as VectorSourceType
+from app.ml.embeddings import get_embedding_provider, EmbeddingService
+from app.ml.repositories import DocumentChunkRepository
 
 
 class KnowledgeBaseService:
@@ -13,6 +17,49 @@ class KnowledgeBaseService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.repository = KnowledgeBaseRepository(db)
+        self.chunk_repository = DocumentChunkRepository(db)
+        self.logger = logging.getLogger("app.knowledge")
+    
+    async def _sync_vector(self, entry: KnowledgeBase) -> None:
+        """Sync a knowledge base entry with the vector store"""
+        if not entry.is_active:
+            await self.chunk_repository.delete_by_source(
+                company_id=entry.company_id,
+                source_type=VectorSourceType.KNOWLEDGE_BASE,
+                source_id=entry.id
+            )
+            return
+        
+        # Combine title and content for embedding
+        text_to_embed = f"{entry.title}\n\n{entry.content}"
+        
+        # Generate embedding
+        provider = get_embedding_provider("local")
+        embedding_service = EmbeddingService(provider)
+        embedding = await embedding_service.embed_text(text_to_embed)
+        
+        # Delete existing chunk for this entry
+        existing = await self.chunk_repository.get_by_source(
+            company_id=entry.company_id,
+            source_type=VectorSourceType.KNOWLEDGE_BASE,
+            source_id=entry.id
+        )
+        if existing:
+            await self.db.delete(existing)
+        
+        # Create new chunk
+        chunk = DocumentChunk(
+            company_id=entry.company_id,
+            document_id=None,
+            content=entry.content,
+            chunk_index=0,
+            source_type=VectorSourceType.KNOWLEDGE_BASE,
+            source_id=entry.id,
+            embedding=embedding,
+            extra_data={"title": entry.title, "source": "knowledge_base"}
+        )
+        self.db.add(chunk)
+        await self.db.commit()
     
     async def create_entry(
         self,
@@ -36,7 +83,15 @@ class KnowledgeBaseService:
             version=1,
             is_active=True
         )
-        return await self.repository.create(entry)
+        entry = await self.repository.create(entry)
+        
+        # Sync with vector store
+        try:
+            await self._sync_vector(entry)
+        except Exception as e:
+            self.logger.error(f"Failed to sync knowledge base vector: {str(e)}", exc_info=True)
+        
+        return entry
     
     async def update_entry(
         self,
@@ -61,12 +116,33 @@ class KnowledgeBaseService:
             if is_active is not None:
                 entry.is_active = is_active
             entry.version += 1
-            return await self.repository.update(entry)
+            entry = await self.repository.update(entry)
+            
+            # Sync with vector store
+            try:
+                await self._sync_vector(entry)
+            except Exception as e:
+                self.logger.error(f"Failed to sync knowledge base vector: {str(e)}", exc_info=True)
+            
+            return entry
         return None
     
     async def delete_entry(self, entry_id: UUID) -> bool:
         """Delete knowledge base entry"""
-        return await self.repository.delete(entry_id)
+        entry = await self.repository.get_by_id(entry_id)
+        if entry:
+            # Delete from vector store
+            try:
+                await self.chunk_repository.delete_by_source(
+                    company_id=entry.company_id,
+                    source_type=VectorSourceType.KNOWLEDGE_BASE,
+                    source_id=entry.id
+                )
+            except Exception as e:
+                self.logger.error(f"Failed to delete knowledge base vector: {str(e)}", exc_info=True)
+            
+            return await self.repository.delete(entry_id)
+        return False
     
     async def search(self, company_id: UUID, query: str, skip: int = 0, limit: int = 100) -> List[KnowledgeBase]:
         """Search knowledge base entries"""
