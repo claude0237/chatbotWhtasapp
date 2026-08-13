@@ -10,10 +10,10 @@ from app.logging_config import log_with_context
 # Database logger
 db_logger = logging.getLogger("app.database")
 
-# Create async engine
+# Create async engine (SQL logging controlled via logging_config only)
 engine = create_async_engine(
     settings.database_url,
-    echo=settings.app_debug,
+    echo=False,
     future=True,
 )
 

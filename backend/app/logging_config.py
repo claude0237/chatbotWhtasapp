@@ -195,6 +195,14 @@ def configure_module_loggers(level: int):
     db_logger = logging.getLogger("app.database")
     db_logger.setLevel(logging.WARNING)
     
+    # SQLAlchemy internal loggers (too verbose at INFO)
+    sqlalchemy_engine_logger = logging.getLogger("sqlalchemy.engine")
+    sqlalchemy_engine_logger.setLevel(logging.WARNING)
+    sqlalchemy_pool_logger = logging.getLogger("sqlalchemy.pool")
+    sqlalchemy_pool_logger.setLevel(logging.WARNING)
+    sqlalchemy_dialects_logger = logging.getLogger("sqlalchemy.dialects")
+    sqlalchemy_dialects_logger.setLevel(logging.WARNING)
+    
     # Cache module
     cache_logger = logging.getLogger("app.cache")
     cache_logger.setLevel(logging.WARNING)
