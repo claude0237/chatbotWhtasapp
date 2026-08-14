@@ -8,6 +8,27 @@ from app.ml.embeddings import get_embedding_provider, EmbeddingService
 from app.ml.llm import LLMProvider
 
 
+STRICT_CONTEXT_PROMPT = (
+    "Tu es l'assistant officiel de l'entreprise. Ta seule source de vérité est la base de "
+    "connaissances fournie ci-dessous.\n\n"
+    "Règles:\n"
+    "1. Réponds en te basant sur les informations de la base de connaissances. Tu peux "
+    "reformuler, expliquer, structurer et développer ces informations pour donner une réponse "
+    "claire, complète et professionnelle.\n"
+    "2. Tu peux utiliser tes capacités de langage pour rendre la réponse naturelle et pédagogique, "
+    "mais tous les FAITS (services, produits, prix, horaires, contacts, procédures) doivent "
+    "provenir exclusivement de la base de connaissances.\n"
+    "3. N'invente jamais d'information qui ne figure pas dans la base de connaissances.\n"
+    "4. Si le client demande quelque chose que l'entreprise ne propose pas (produit, service ou "
+    "sujet absent de la base de connaissances), réponds poliment que ce n'est pas proposé, puis "
+    "oriente-le vers les produits et services décrits dans la base de connaissances. Termine par "
+    "une question pour l'aider à avancer (ex: « Souhaitez-vous en savoir plus sur ... ? »).\n"
+    "5. Suis le fil de la conversation et tiens compte des échanges précédents pour ne pas "
+    "répéter ce qui a déjà été dit.\n\n"
+    "Base de connaissances:\n\n{context}"
+)
+
+
 class RAGEngine:
     """RAG Engine for retrieval augmented generation"""
     
@@ -62,16 +83,19 @@ class RAGEngine:
         company_id: UUID,
         query: str,
         top_k: int = 5,
-        threshold: float = 0.5
+        threshold: float = 0.6
     ) -> List[tuple[str, float]]:
-        """Retrieve relevant chunks from unified vector store (documents + knowledge base)"""
+        """Retrieve relevant chunks from unified vector store (documents + knowledge base).
+        
+        threshold is the MINIMUM similarity (0-1); converted to max cosine distance for pgvector.
+        """
         try:
             query_embedding = await self.embedding_service.embed_text(query)
             similar_chunks = await self.vector_store.search_similar(
                 company_id=company_id,
                 query_embedding=query_embedding,
                 limit=top_k,
-                threshold=threshold
+                threshold=1.0 - threshold
             )
             if similar_chunks:
                 return [(chunk.content, similarity) for chunk, similarity in similar_chunks]
@@ -105,7 +129,7 @@ class RAGEngine:
         company_id: UUID,
         query: str,
         top_k: int = 3,
-        threshold: float = 0.5,
+        threshold: float = 0.6,
         temperature: float = 0.7,
         max_tokens: int = 500
     ) -> Dict[str, Any]:
@@ -119,20 +143,24 @@ class RAGEngine:
         )
         
         if not retrieved_chunks:
-            # No relevant context found, generate without context
-            response = await self.generate(
+            # Best-effort retrieval: give the model the company offering so it can
+            # politely redirect the client instead of staying silent.
+            retrieved_chunks = await self.retrieve(
+                company_id=company_id,
                 query=query,
-                context=None,
-                temperature=temperature,
-                max_tokens=max_tokens
+                top_k=top_k,
+                threshold=0.0
             )
+        
+        if not retrieved_chunks:
+            # Knowledge base is completely empty: fall back to the configured unknown message.
             return {
-                "response": response,
+                "response": "",
                 "context": None,
                 "sources": [],
                 "confidence": 0.0,
                 "retrieval_confidence": 0.0,
-                "response_quality": 0.5  # Neutral score when no context
+                "response_quality": 0.0
             }
         
         # Build context from retrieved chunks
@@ -147,10 +175,10 @@ class RAGEngine:
         
         context = "\n\n".join(context_parts)
         
-        # Generate response with context
+        # Generate response with strict context-only prompt
         response = await self.generate(
             query=query,
-            context=f"Use the following context to answer the question:\n\n{context}",
+            context=STRICT_CONTEXT_PROMPT.format(context=context),
             temperature=temperature,
             max_tokens=max_tokens
         )
@@ -179,7 +207,7 @@ class RAGEngine:
         query: str,
         conversation_history: List[Dict[str, str]],
         top_k: int = 3,
-        threshold: float = 0.5,
+        threshold: float = 0.6,
         temperature: float = 0.7,
         max_tokens: int = 500
     ) -> Dict[str, Any]:
@@ -192,17 +220,35 @@ class RAGEngine:
             threshold=threshold
         )
         
-        # Build messages for LLM
-        messages = []
+        if not retrieved_chunks:
+            # Best-effort retrieval: give the model the company offering so it can
+            # politely redirect the client instead of staying silent.
+            retrieved_chunks = await self.retrieve(
+                company_id=company_id,
+                query=query,
+                top_k=top_k,
+                threshold=0.0
+            )
         
-        # Add system prompt with context if available
-        if retrieved_chunks:
-            context_parts = [content for content, _ in retrieved_chunks]
-            context = "\n\n".join(context_parts)
-            messages.append({
-                "role": "system",
-                "content": f"Use the following context to answer the question:\n\n{context}"
-            })
+        if not retrieved_chunks:
+            # Knowledge base is completely empty: fall back to the configured unknown message.
+            return {
+                "response": "",
+                "context": None,
+                "sources": [],
+                "confidence": 0.0,
+                "retrieval_confidence": 0.0,
+                "response_quality": 0.0
+            }
+        
+        # Build messages for LLM with strict context-grounded prompt
+        messages = []
+        context_parts = [content for content, _ in retrieved_chunks]
+        context = "\n\n".join(context_parts)
+        messages.append({
+            "role": "system",
+            "content": STRICT_CONTEXT_PROMPT.format(context=context)
+        })
         
         # Add conversation history
         messages.extend(conversation_history)
@@ -221,10 +267,9 @@ class RAGEngine:
         )
         
         # Calculate retrieval confidence (average similarity)
-        retrieval_confidence = sum(sim for _, sim in retrieved_chunks) / len(retrieved_chunks) if retrieved_chunks else 0.0
+        retrieval_confidence = sum(sim for _, sim in retrieved_chunks) / len(retrieved_chunks)
         
         # Calculate response quality (overlap with context)
-        context = "\n\n".join([content for content, _ in retrieved_chunks]) if retrieved_chunks else None
         response_quality = self._calculate_response_quality(response, context)
         
         # Combine both: 60% retrieval, 40% response quality

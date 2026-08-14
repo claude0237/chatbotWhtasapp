@@ -153,19 +153,21 @@ class BotEngine:
                 from app.ml.engine import MLEngine
                 ml_engine = MLEngine(self.db)
 
-                # Use platform default ML configuration
+                # Build conversation history so the ML keeps the conversation context
+                conversation_history = await self._get_conversation_history(company_id, phone_number)
+
+                # Use the company's ML configuration (falls back to platform defaults inside MLEngine)
                 ml_result = await ml_engine.process_message(
                     company_id,
                     message_text,
-                    temperature=settings.ml_default_temperature,
-                    max_tokens=settings.ml_default_max_tokens,
-                    confidence_threshold=settings.ml_default_confidence_threshold
+                    conversation_history=conversation_history
                 )
 
                 logger.info(f"ML result: {ml_result}")
 
-                # Check confidence threshold
-                if ml_result.get("confidence", 0) >= settings.ml_default_confidence_threshold:
+                # If a non-empty response was generated, return it. Confidence is logged but no longer blocks the answer.
+                response_text = ml_result.get("response", "").strip()
+                if response_text:
                     log_bot(
                         logger,
                         logging.INFO,
@@ -173,23 +175,22 @@ class BotEngine:
                         company_id=str(company_id),
                         phone_number=phone_number,
                         bot_type="ML",
-                        reply_length=len(ml_result.get("response", "")),
+                        reply_length=len(response_text),
                         confidence=ml_result.get("confidence", 0)
                     )
-                    return ml_result.get("response", "Je n'ai pas compris votre message.")
-                else:
-                    # Confidence too low
-                    logger.info(f"ML confidence too low: {ml_result.get('confidence', 0)} < {settings.ml_default_confidence_threshold}")
-                    log_bot(
-                        logger,
-                        logging.WARNING,
-                        "BOT_ML_CONFIDENCE_LOW",
-                        company_id=str(company_id),
-                        phone_number=phone_number,
-                        confidence=ml_result.get("confidence", 0),
-                        threshold=settings.ml_default_confidence_threshold
-                    )
-                    return "Je n'ai pas compris votre message. Veuillez reformuler."
+                    return response_text
+
+                # Empty response from ML: fall back to unknown message
+                logger.warning("ML returned an empty response")
+                log_bot(
+                    logger,
+                    logging.WARNING,
+                    "BOT_ML_EMPTY_RESPONSE",
+                    company_id=str(company_id),
+                    phone_number=phone_number,
+                    confidence=ml_result.get("confidence", 0)
+                )
+                return self._interpolate(config.unknown_message or "Je n'ai pas compris votre message. Veuillez reformuler.", {})
             except Exception as e:
                 # If ML fails
                 logger.error(f"ML processing failed: {str(e)}")
@@ -206,6 +207,40 @@ class BotEngine:
 
         # ── 5. Native Fallback (unknown_message) ─────────────────────────────
         return self._interpolate(config.unknown_message or "Je n'ai pas compris votre message.", {})
+
+    async def _get_conversation_history(
+        self,
+        company_id: UUID,
+        phone_number: str,
+        max_messages: int = 10
+    ) -> list:
+        """Build the recent conversation history as LLM messages (user/assistant)."""
+        from app.conversations.models import SenderType
+        from app.conversations.repositories import MessageRepository
+
+        history = []
+        try:
+            customer = await self.customer_repo.get_by_phone_number(company_id, phone_number)
+            if not customer:
+                return history
+
+            conversation = await self.conversation_repo.get_active_by_customer(company_id, customer.id)
+            if not conversation:
+                return history
+
+            message_repo = MessageRepository(self.db)
+            messages = await message_repo.get_history(conversation.id, limit=100)
+
+            # Keep only the last max_messages text messages
+            for msg in messages[-max_messages:]:
+                if not msg.content:
+                    continue
+                role = "user" if msg.sender_type == SenderType.CUSTOMER else "assistant"
+                history.append({"role": role, "content": msg.content})
+        except Exception as e:
+            logger.warning(f"Failed to build conversation history: {str(e)}")
+
+        return history
 
     async def _check_and_update_ml_usage(self, company_id: UUID, company: Company) -> bool:
         """Check ML quota and update usage. Returns True if allowed, False if quota exceeded."""

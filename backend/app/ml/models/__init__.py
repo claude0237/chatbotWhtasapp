@@ -92,7 +92,7 @@ class DocumentChunk(Base):
     content = Column(Text, nullable=False)
     chunk_index = Column(Integer, nullable=False, default=0)
     
-    source_type = Column(SQLEnum(SourceType), default=SourceType.DOCUMENT, nullable=False)
+    source_type = Column(SQLEnum(SourceType, native_enum=False, length=50), default=SourceType.DOCUMENT, nullable=False)
     source_id = Column(UUID(as_uuid=True), nullable=True, index=True)
     
     # Embedding vector (pgvector)

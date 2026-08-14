@@ -686,6 +686,7 @@ async def webhook_receive(request: Request, db: AsyncSession = Depends(get_db)):
     _log = logging.getLogger(__name__)
     try:
         payload = await request.json()
+        _log.info(f"[RAW] Webhook received: {payload}")
 
         # Extract phone_number_id from Meta webhook payload
         phone_number_id = (
@@ -809,6 +810,9 @@ async def webhook_receive_tenant(
             return {"status": "ignored", "reason": "no WhatsApp channel configured"}
         
         payload = await request.json()
+        _log.info(f"[RAW] Webhook received for tenant {payload}")
+#        print(f"[RAW] Webhook received for tenant {payload}")
+
         
         # Verify the phone_number_id in the payload matches the tenant's configuration
         phone_number_id = (

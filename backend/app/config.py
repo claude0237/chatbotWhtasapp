@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     ml_default_model: str = "gpt-4"
     ml_default_temperature: float = 0.7
     ml_default_max_tokens: int = 500
-    ml_default_confidence_threshold: float = 0.5
+    ml_default_confidence_threshold: float = 0.6
     ml_default_fallback_strategy: str = "ML_TO_NATIVE"
     
     # Celery

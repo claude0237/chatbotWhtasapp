@@ -114,26 +114,23 @@ class DocumentChunkRepository:
         threshold: float = 0.5
     ) -> List[Tuple[DocumentChunk, float]]:
         """Search similar chunks using pgvector cosine distance"""
-        # pgvector expects vector literal like '[0.1,0.2,...]'
-        embedding_str = "[" + ",".join(str(float(x)) for x in embedding) + "]"
-        
-        query = text("""
-            SELECT id, content, embedding, (embedding <=> :embedding::vector) as distance
-            FROM document_chunks
-            WHERE company_id = :company_id
-              AND (embedding <=> :embedding::vector) <= :threshold
-            ORDER BY embedding <=> :embedding::vector
-            LIMIT :limit
-        """)
+        distance_expr = DocumentChunk.embedding.cosine_distance(embedding).label("distance")
         
         result = await self.db.execute(
-            query,
-            {
-                "company_id": str(company_id),
-                "embedding": embedding_str,
-                "threshold": threshold,
-                "limit": limit
-            }
+            select(
+                DocumentChunk.id,
+                DocumentChunk.content,
+                DocumentChunk.embedding,
+                distance_expr
+            )
+            .where(
+                and_(
+                    DocumentChunk.company_id == company_id,
+                    distance_expr <= threshold
+                )
+            )
+            .order_by(distance_expr)
+            .limit(limit)
         )
         
         chunks = []

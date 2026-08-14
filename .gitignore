@@ -135,6 +135,7 @@ backend/init_db.py
 backend/create_superadmin.py
 backend/test_*.py
 backend/check_*.py
+backend/backfill_*.py
 backend/update_*.py
 backend/analyze_*.py
 *.tmp
