@@ -551,7 +551,10 @@ class BotEngine:
             if key in choices:
                 return None  # valid choice → advance
             if "DEFAULT" in choices:
-                return choices["DEFAULT"]  # invalid → re-ask
+                default_branch = choices["DEFAULT"]
+                if isinstance(default_branch, dict):
+                    return default_branch.get("reply") or unknown_message or "Choix invalide. Veuillez sélectionner une option valide."
+                return default_branch  # invalid → re-ask
             # No DEFAULT defined → return unknown_message to stay on same step
             return unknown_message or "Choix invalide. Veuillez sélectionner une option valide."
 
@@ -572,7 +575,10 @@ class BotEngine:
         """Return the reply text for a matched choice/condition (used as closing message)."""
         if step_type == "choice":
             choices: dict = step.get("choices", {})
-            return choices.get(normalized.strip()) or choices.get("DEFAULT")
+            branch = choices.get(normalized.strip()) or choices.get("DEFAULT")
+            if isinstance(branch, dict):
+                return branch.get("reply")
+            return branch
 
         if step_type == "condition":
             conditions: list = step.get("conditions", [])

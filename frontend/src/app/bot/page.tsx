@@ -67,6 +67,34 @@ interface StepDraft {
 
 const BLANK_STEP: StepDraft = { type: 'text', message: '', end_message: '', choices: [{ key: '', reply: '', label: '' }], conditions: [{ if: 'equals', value: '', reply: '' }], catalogue_category: '', render: 'text', list_button_label: '' };
 
+/**
+ * Shift every {step_N_answer} reference found in step text fields (message,
+ * end_message, choices[].reply, conditions[].reply) so that inserting or
+ * removing a step keeps all variable references pointing at the right answer.
+ *
+ * fromNumber (1-based): the step number threshold.
+ * delta: +1 when inserting a step at that position, -1 when removing it.
+ */
+function shiftStepAnswerRefs(steps: StepDraft[], fromNumber: number, delta: number): StepDraft[] {
+  const shiftText = (text: string): string =>
+    (text || '').replace(/\{step_(\d+)_answer\}/g, (match, numStr) => {
+      const num = parseInt(numStr, 10);
+      if (num >= fromNumber) {
+        const newNum = num + delta;
+        return newNum >= 1 ? `{step_${newNum}_answer}` : match;
+      }
+      return match;
+    });
+
+  return steps.map(s => ({
+    ...s,
+    message: shiftText(s.message),
+    end_message: shiftText(s.end_message),
+    choices: s.choices.map(c => ({ ...c, reply: shiftText(c.reply) })),
+    conditions: s.conditions.map(c => ({ ...c, reply: shiftText(c.reply) })),
+  }));
+}
+
 export default function BotPage() {
   const { user } = useAuth();
   const companyId: string | undefined = (user as any)?.company_id;
@@ -240,6 +268,17 @@ export default function BotPage() {
   };
   const fetchKeywords = async () => {
     try { const r = await api.get('/bot/keywords'); setKeywords(r.data); } catch {}
+  };
+
+  const insertStepAt = (position: number) => {
+    const withNewStep = [...scenarioSteps];
+    withNewStep.splice(position, 0, { ...BLANK_STEP, choices: [{ key: '', reply: '', label: '' }], conditions: [{ if: 'equals', value: '', reply: '' }] });
+    setScenarioSteps(shiftStepAnswerRefs(withNewStep, position + 1, +1));
+  };
+
+  const removeStepAt = (idx: number) => {
+    const withoutStep = scenarioSteps.filter((_, i) => i !== idx);
+    setScenarioSteps(shiftStepAnswerRefs(withoutStep, idx + 2, -1));
   };
 
   const openNewScenario = () => {
@@ -853,8 +892,23 @@ export default function BotPage() {
                   <span className="text-xs text-gray-400">{scenarioSteps.length} étape{scenarioSteps.length > 1 ? 's' : ''}</span>
                 </div>
                 <div className="space-y-3">
-                  {scenarioSteps.map((step, idx) => (
-                    <div key={idx} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                  {(() => {
+                    const InsertLink = ({ position }: { position: number }) => (
+                      <div className="flex items-center gap-2 group">
+                        <div className="flex-1 border-t border-dashed border-gray-300 group-hover:border-green-400" />
+                        <button type="button" onClick={() => insertStepAt(position)}
+                          className="text-[11px] text-gray-400 hover:text-green-600 flex items-center gap-1 px-1">
+                          ➕ Insérer une étape ici
+                        </button>
+                        <div className="flex-1 border-t border-dashed border-gray-300 group-hover:border-green-400" />
+                      </div>
+                    );
+                    return (
+                      <>
+                        <InsertLink position={0} />
+                        {scenarioSteps.map((step, idx) => (
+                          <div key={idx}>
+                          <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-6 h-6 rounded-full bg-green-100 text-green-700 text-xs font-bold flex items-center justify-center flex-shrink-0">{idx + 1}</div>
                         <select
@@ -872,7 +926,7 @@ export default function BotPage() {
                           <option value="catalogue">🛍️ Catalogue produits</option>
                         </select>
                         {scenarioSteps.length > 1 && (
-                          <button type="button" onClick={() => setScenarioSteps(scenarioSteps.filter((_, i) => i !== idx))}
+                          <button type="button" onClick={() => removeStepAt(idx)}
                             className="ml-auto text-red-400 hover:text-red-600 text-sm">✕ Supprimer</button>
                         )}
                       </div>
@@ -1056,7 +1110,12 @@ export default function BotPage() {
                         />
                       </div>
                     </div>
-                  ))}
+                          <InsertLink position={idx + 1} />
+                          </div>
+                        ))}
+                      </>
+                    );
+                  })()}
                 </div>
                 <button type="button"
                   onClick={() => setScenarioSteps([...scenarioSteps, { ...BLANK_STEP }])}
