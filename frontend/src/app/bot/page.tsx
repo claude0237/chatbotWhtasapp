@@ -51,8 +51,9 @@ const TIMEZONES = [
   { value: 'Asia/Singapore', label: 'Singapour UTC+8' },
   { value: 'UTC', label: 'UTC' },
 ];
-interface ChoiceEntry { key: string; reply: string; }
+interface ChoiceEntry { key: string; reply: string; label: string; }
 interface ConditionEntry { if: 'equals' | 'contains' | 'starts_with' | 'not_equals' | 'default'; value: string; reply: string; }
+type ChoiceRender = 'text' | 'buttons' | 'list';
 interface StepDraft {
   type: StepType;
   message: string;
@@ -60,9 +61,11 @@ interface StepDraft {
   choices: ChoiceEntry[];
   conditions: ConditionEntry[];
   catalogue_category: string;
+  render: ChoiceRender;
+  list_button_label: string;
 }
 
-const BLANK_STEP: StepDraft = { type: 'text', message: '', end_message: '', choices: [{ key: '', reply: '' }], conditions: [{ if: 'equals', value: '', reply: '' }], catalogue_category: '' };
+const BLANK_STEP: StepDraft = { type: 'text', message: '', end_message: '', choices: [{ key: '', reply: '', label: '' }], conditions: [{ if: 'equals', value: '', reply: '' }], catalogue_category: '', render: 'text', list_button_label: '' };
 
 export default function BotPage() {
   const { user } = useAuth();
@@ -197,7 +200,10 @@ export default function BotPage() {
     if (type === 'choice') {
       const choices = step.choices || {};
       if (normalized.trim() in choices) return null;
-      if ('DEFAULT' in choices) return choices['DEFAULT'];
+      if ('DEFAULT' in choices) {
+        const def = choices['DEFAULT'];
+        return typeof def === 'object' ? def?.reply || null : def;
+      }
       return null;
     }
     if (type === 'condition') {
@@ -250,10 +256,12 @@ export default function BotPage() {
       message: st.message || st.text || '',
       end_message: st.end_message || '',
       choices: st.choices
-        ? Object.entries(st.choices).filter(([k]) => k !== 'DEFAULT').map(([k, v]: any) => ({ key: k, reply: typeof v === 'string' ? v : v.reply || '' }))
-        : [{ key: '', reply: '' }],
+        ? Object.entries(st.choices).filter(([k]) => k !== 'DEFAULT').map(([k, v]: any) => ({ key: k, reply: typeof v === 'string' ? v : v.reply || '', label: typeof v === 'object' ? v.label || '' : '' }))
+        : [{ key: '', reply: '', label: '' }],
       conditions: st.conditions || [{ if: 'equals', value: '', reply: '' }],
       catalogue_category: st.catalogue_category || '',
+      render: st.render || 'text',
+      list_button_label: st.list_button_label || '',
     }));
     setScenarioSteps(drafts.length > 0 ? drafts : [{ ...BLANK_STEP }]);
     setShowScenarioModal(true);
@@ -274,9 +282,17 @@ export default function BotPage() {
           const base: any = { step: i + 1, message: st.message.trim(), type: st.type };
           if (st.end_message.trim()) base.end_message = st.end_message.trim();
           if (st.type === 'choice') {
-            const choices: Record<string, string> = {};
-            st.choices.forEach(c => { if (c.key.trim()) choices[c.key.trim().toUpperCase()] = c.reply; });
-            base.choices = choices;
+            if (st.render !== 'text') {
+              const choices: Record<string, { reply: string; label: string }> = {};
+              st.choices.forEach(c => { if (c.key.trim()) choices[c.key.trim().toUpperCase()] = { reply: c.reply, label: c.label.trim() || c.key.trim() }; });
+              base.choices = choices;
+              base.render = st.render;
+              if (st.render === 'list' && st.list_button_label.trim()) base.list_button_label = st.list_button_label.trim();
+            } else {
+              const choices: Record<string, string> = {};
+              st.choices.forEach(c => { if (c.key.trim()) choices[c.key.trim().toUpperCase()] = c.reply; });
+              base.choices = choices;
+            }
           }
           if (st.type === 'condition') {
             base.conditions = st.conditions.filter(c => c.value.trim() || c.if === 'default');
@@ -366,7 +382,10 @@ export default function BotPage() {
             // Resolve the choice/condition reply first
             const type = currentStep.type || 'text';
             let resolved: string | undefined;
-            if (type === 'choice') resolved = currentStep.choices?.[normalized.trim()] || currentStep.choices?.['DEFAULT'];
+            if (type === 'choice') {
+              const branchVal = currentStep.choices?.[normalized.trim()] || currentStep.choices?.['DEFAULT'];
+              resolved = typeof branchVal === 'object' ? branchVal?.reply : branchVal;
+            }
             if (type === 'condition') {
               for (const cond of (currentStep.conditions || [])) {
                 if (simMatchCondition(cond, normalized)) { resolved = cond.reply; break; }
@@ -384,7 +403,8 @@ export default function BotPage() {
             let choiceReply = '';
             if (curType === 'choice') {
               const cr = currentStep.choices?.[normalized.trim()] || currentStep.choices?.['DEFAULT'];
-              if (cr && typeof cr === 'string') choiceReply = await simResolve(cr, newData);
+              const crReply = typeof cr === 'object' ? cr?.reply : cr;
+              if (crReply) choiceReply = await simResolve(crReply, newData);
             }
             if (curType === 'condition') {
               for (const cond of (currentStep.conditions || [])) {
@@ -922,6 +942,27 @@ export default function BotPage() {
                       {/* CHOICE options */}
                       {step.type === 'choice' && (
                         <div className="mt-2 space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs font-medium text-gray-600">Affichage :</label>
+                            <select
+                              value={step.render}
+                              onChange={e => { const u = [...scenarioSteps]; u[idx] = { ...u[idx], render: e.target.value as ChoiceRender }; setScenarioSteps(u); }}
+                              className="border border-gray-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-green-500"
+                            >
+                              <option value="text">💬 Texte (le client tape sa réponse)</option>
+                              <option value="buttons">🔘 Boutons cliquables (max 3)</option>
+                              <option value="list">📋 Liste déroulante (max 10)</option>
+                            </select>
+                          </div>
+                          {step.render === 'list' && (
+                            <input
+                              value={step.list_button_label}
+                              onChange={e => { const u = [...scenarioSteps]; u[idx] = { ...u[idx], list_button_label: e.target.value }; setScenarioSteps(u); }}
+                              className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-green-500"
+                              placeholder="Libellé du bouton d'ouverture (ex: Choisir, max 20 car.)"
+                              maxLength={20}
+                            />
+                          )}
                           <p className="text-xs font-medium text-gray-600">Réponses possibles :</p>
                           {step.choices.map((c, ci) => (
                             <div key={ci} className="flex gap-2 items-center">
@@ -932,6 +973,15 @@ export default function BotPage() {
                                 placeholder="1"
                               />
                               <span className="text-gray-400 text-xs">→</span>
+                              {step.render !== 'text' && (
+                                <input
+                                  value={c.label}
+                                  onChange={e => { const u = [...scenarioSteps]; u[idx].choices[ci] = { ...c, label: e.target.value }; setScenarioSteps(u); }}
+                                  className="w-28 border border-gray-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-green-500"
+                                  placeholder={step.render === 'buttons' ? 'Titre bouton (≤20)' : 'Titre ligne (≤24)'}
+                                  maxLength={step.render === 'buttons' ? 20 : 24}
+                                />
+                              )}
                               <input
                                 value={c.reply}
                                 onChange={e => { const u = [...scenarioSteps]; u[idx].choices[ci] = { ...c, reply: e.target.value }; setScenarioSteps(u); }}
@@ -945,8 +995,11 @@ export default function BotPage() {
                             </div>
                           ))}
                           <button type="button"
-                            onClick={() => { const u = [...scenarioSteps]; u[idx].choices = [...u[idx].choices, { key: '', reply: '' }]; setScenarioSteps(u); }}
+                            onClick={() => { const u = [...scenarioSteps]; u[idx].choices = [...u[idx].choices, { key: '', reply: '', label: '' }]; setScenarioSteps(u); }}
                             className="text-xs text-green-600 hover:text-green-800">+ Ajouter un choix</button>
+                          {step.render !== 'text' && step.choices.length > (step.render === 'buttons' ? 3 : 10) && (
+                            <p className="text-xs text-red-500">⚠️ WhatsApp limite à {step.render === 'buttons' ? '3 boutons' : '10 lignes'} maximum. Les choix en trop seront ignorés à l'envoi.</p>
+                          )}
                           <p className="text-xs text-gray-400">Astuce : ajoutez un choix avec la clé <span className="font-mono bg-gray-100 px-1 rounded">DEFAULT</span> pour les réponses invalides (re-demande).</p>
                         </div>
                       )}

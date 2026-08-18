@@ -21,7 +21,7 @@ import {
 interface WhatsAppMessage {
   id: string; message_id: string; direction: string; status: string;
   message_type: string; phone_number: string; display_name: string;
-  content: string; created_at: string;
+  content: string; created_at: string; extra_data?: Record<string, any> | null;
 }
 interface WhatsAppTemplate {
   id: string; name: string; category: string; language: string; is_approved: boolean;
@@ -921,6 +921,9 @@ export default function WhatsAppPage() {
                       </span>
                     </td>
                     <td className="px-5 py-4 max-w-xs">
+                      {msg.message_type === 'INTERACTIVE' && (
+                        <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded mr-1">🔘 Interactif</span>
+                      )}
                       <p className="text-sm text-gray-700 truncate">{msg.content || '(média)'}</p>
                     </td>
                     <td className="px-5 py-4">
@@ -1067,9 +1070,19 @@ function ConversationModal({ phoneNumber, onClose }: { phoneNumber: string; onCl
                 msg.direction === 'OUTGOING' ? 'bg-green-600 text-white' : 'bg-white border border-gray-200 text-gray-800'
               }`}>
                 <p className="whitespace-pre-wrap break-words">{msg.content || '(média)'}</p>
+                {msg.message_type === 'INTERACTIVE' && msg.direction === 'OUTGOING' && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {(msg.extra_data?.buttons || msg.extra_data?.rows || []).map((opt: any, i: number) => (
+                      <span key={i} className="text-[11px] bg-white/20 border border-white/40 rounded-full px-2 py-0.5">
+                        {opt.title}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <p className={`text-[10px] mt-1 ${msg.direction === 'OUTGOING' ? 'text-green-100' : 'text-gray-400'}`}>
                   {new Date(msg.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                   {' · '}{msg.status}
+                  {msg.message_type === 'INTERACTIVE' && msg.direction === 'INCOMING' && ' · 🔘 clic bouton'}
                 </p>
               </div>
             </div>

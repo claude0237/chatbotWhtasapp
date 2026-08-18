@@ -31,6 +31,7 @@ class MessageType(str, enum.Enum):
     AUDIO = "AUDIO"
     DOCUMENT = "DOCUMENT"
     TEMPLATE = "TEMPLATE"
+    INTERACTIVE = "INTERACTIVE"
 
 
 class WhatsAppMessage(Base):

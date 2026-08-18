@@ -3,6 +3,7 @@ from typing import Optional, Dict, Any
 from uuid import UUID
 from datetime import datetime
 import httpx
+import json
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +15,7 @@ from app.whatsapp.repositories import WhatsAppMessageRepository, WhatsAppTemplat
 from app.channels.repositories import ChannelRepository, ChannelConfigurationRepository, ChannelCredentialRepository
 from app.channels.models import ChannelType
 from app.utils.encryption import decrypt_credential
-from app.bot.engine import BotEngine, HANDOFF_PREFIX
+from app.bot.engine import BotEngine, HANDOFF_PREFIX, INTERACTIVE_PREFIX
 from app.bot.repositories import BotConversationStateRepository
 from app.conversations.repositories import CustomerRepository, ConversationRepository, MessageRepository
 from app.conversations.models import Conversation, Message, ConversationStatus, SenderType, ConversationMessageType, ConversationMessageStatus
@@ -203,6 +204,168 @@ class WhatsAppService:
         
         return message
     
+    async def send_interactive_buttons_message(
+        self,
+        company_id: UUID,
+        phone_number: str,
+        body_text: str,
+        buttons: list,
+        display_name: Optional[str] = None
+    ) -> WhatsAppMessage:
+        """
+        Send an interactive reply-buttons message via WhatsApp API.
+        `buttons` is a list of dicts: [{"id": "yes", "title": "Oui"}, ...] (max 3, title <= 20 chars)
+        """
+        creds = await self._get_company_credentials(company_id)
+        buttons = buttons[:3]
+
+        message = WhatsAppMessage(
+            company_id=company_id,
+            message_id=f"temp_{datetime.utcnow().timestamp()}",
+            direction=MessageDirection.OUTGOING,
+            status=MessageStatus.PENDING,
+            message_type=MessageType.INTERACTIVE,
+            phone_number=phone_number,
+            display_name=display_name,
+            content=body_text,
+            extra_data={"interactive_type": "button", "buttons": buttons}
+        )
+        message = await self.message_repository.create(message)
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone_number,
+            "type": "interactive",
+            "interactive": {
+                "type": "button",
+                "body": {"text": body_text[:1024]},
+                "action": {
+                    "buttons": [
+                        {"type": "reply", "reply": {"id": b["id"][:256], "title": b["title"][:20]}}
+                        for b in buttons
+                    ]
+                }
+            }
+        }
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{self.base_url}/{creds['phone_number_id']}/messages",
+                    headers={
+                        "Authorization": f"Bearer {creds['access_token']}",
+                        "Content-Type": "application/json"
+                    },
+                    json=payload
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    whatsapp_message_id = data.get("messages", [{}])[0].get("id")
+                    message.message_id = whatsapp_message_id
+                    message.status = MessageStatus.SENT
+                    message.sent_at = datetime.utcnow()
+                    await self.message_repository.update(message)
+                else:
+                    logger.warning(f"Meta API send_interactive_buttons error {response.status_code}: {response.text}")
+                    message.status = MessageStatus.FAILED
+                    await self.message_repository.update(message)
+
+        except Exception as e:
+            logger.error(f"WhatsApp send_interactive_buttons exception: {e}", exc_info=True)
+            message.status = MessageStatus.FAILED
+            await self.message_repository.update(message)
+            raise e
+
+        return message
+
+    async def send_interactive_list_message(
+        self,
+        company_id: UUID,
+        phone_number: str,
+        body_text: str,
+        button_label: str,
+        rows: list,
+        section_title: Optional[str] = None,
+        display_name: Optional[str] = None
+    ) -> WhatsAppMessage:
+        """
+        Send an interactive list message via WhatsApp API.
+        `rows` is a list of dicts: [{"id": "opt1", "title": "Option 1", "description": "..."}, ...] (max 10)
+        """
+        creds = await self._get_company_credentials(company_id)
+        rows = rows[:10]
+
+        message = WhatsAppMessage(
+            company_id=company_id,
+            message_id=f"temp_{datetime.utcnow().timestamp()}",
+            direction=MessageDirection.OUTGOING,
+            status=MessageStatus.PENDING,
+            message_type=MessageType.INTERACTIVE,
+            phone_number=phone_number,
+            display_name=display_name,
+            content=body_text,
+            extra_data={"interactive_type": "list", "rows": rows}
+        )
+        message = await self.message_repository.create(message)
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": phone_number,
+            "type": "interactive",
+            "interactive": {
+                "type": "list",
+                "body": {"text": body_text[:1024]},
+                "action": {
+                    "button": button_label[:20],
+                    "sections": [
+                        {
+                            "title": (section_title or "Options")[:24],
+                            "rows": [
+                                {
+                                    "id": r["id"][:200],
+                                    "title": r["title"][:24],
+                                    **({"description": r["description"][:72]} if r.get("description") else {})
+                                }
+                                for r in rows
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{self.base_url}/{creds['phone_number_id']}/messages",
+                    headers={
+                        "Authorization": f"Bearer {creds['access_token']}",
+                        "Content-Type": "application/json"
+                    },
+                    json=payload
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    whatsapp_message_id = data.get("messages", [{}])[0].get("id")
+                    message.message_id = whatsapp_message_id
+                    message.status = MessageStatus.SENT
+                    message.sent_at = datetime.utcnow()
+                    await self.message_repository.update(message)
+                else:
+                    logger.warning(f"Meta API send_interactive_list error {response.status_code}: {response.text}")
+                    message.status = MessageStatus.FAILED
+                    await self.message_repository.update(message)
+
+        except Exception as e:
+            logger.error(f"WhatsApp send_interactive_list exception: {e}", exc_info=True)
+            message.status = MessageStatus.FAILED
+            await self.message_repository.update(message)
+            raise e
+
+        return message
+
     async def send_template_message(
         self,
         company_id: UUID,
@@ -357,8 +520,28 @@ class WhatsAppService:
                         
                         # Extract message data
                         phone_from = msg.get("from")
-                        msg_text = msg.get("text", {}).get("body", "")
                         display_name = value.get("contacts", [{}])[0].get("profile", {}).get("name")
+
+                        # ── Interactive reply (button/list click) ──
+                        # msg_text carries the option's id (used to advance the bot engine,
+                        # exactly like typed text would), while msg_display carries the
+                        # human-readable title clicked, used for storage/history.
+                        interactive_reply_id = None
+                        if msg.get("type") == "interactive":
+                            interactive = msg.get("interactive", {})
+                            button_reply = interactive.get("button_reply")
+                            list_reply = interactive.get("list_reply")
+                            reply = button_reply or list_reply
+                            if reply:
+                                interactive_reply_id = reply.get("id", "")
+                                msg_text = reply.get("id", "")
+                                msg_display = reply.get("title", "") or msg_text
+                            else:
+                                msg_text = ""
+                                msg_display = ""
+                        else:
+                            msg_text = msg.get("text", {}).get("body", "")
+                            msg_display = msg_text
 
                         # ── Save raw WhatsApp message ──
                         wa_message = WhatsAppMessage(
@@ -366,10 +549,11 @@ class WhatsAppService:
                             message_id=msg.get("id"),
                             direction=MessageDirection.INCOMING,
                             status=MessageStatus.DELIVERED,
-                            message_type=MessageType.TEXT,
+                            message_type=MessageType.INTERACTIVE if interactive_reply_id is not None else MessageType.TEXT,
                             phone_number=phone_from,
                             display_name=display_name,
-                            content=msg_text,
+                            content=msg_display,
+                            extra_data={"interactive_reply_id": interactive_reply_id} if interactive_reply_id is not None else None,
                             sent_at=datetime.utcfromtimestamp(int(msg.get("timestamp", 0))),
                             created_at=datetime.utcnow()
                         )
@@ -486,7 +670,7 @@ class WhatsAppService:
                             conversation_id=conversation.id,
                             sender_type=SenderType.CUSTOMER,
                             sender_id=customer.id,
-                            content=msg_text,
+                            content=msg_display,
                             message_type=ConversationMessageType.TEXT,
                             external_message_id=msg.get("id"),
                             status=ConversationMessageStatus.DELIVERED,
@@ -534,12 +718,45 @@ class WhatsAppService:
                             _log = logging.getLogger(__name__)
                             bot_sent = False
                             wa_msg_id = None
+
+                            # Detect interactive (buttons/list) sentinel from BotEngine
+                            interactive_payload = None
+                            display_text = bot_reply
+                            if bot_reply.startswith(INTERACTIVE_PREFIX):
+                                try:
+                                    interactive_payload = json.loads(bot_reply[len(INTERACTIVE_PREFIX):])
+                                    display_text = interactive_payload.get("body", "")
+                                except Exception as e:
+                                    _log.warning(f"Failed to parse interactive payload: {e}")
+                                    interactive_payload = None
+                                    display_text = bot_reply
+
                             try:
-                                wa_msg = await self.send_text_message(
-                                    company_id=company_id,
-                                    phone_number=phone_from,
-                                    content=bot_reply,
-                                )
+                                if interactive_payload and interactive_payload.get("render") == "buttons":
+                                    wa_msg = await self.send_interactive_buttons_message(
+                                        company_id=company_id,
+                                        phone_number=phone_from,
+                                        body_text=display_text,
+                                        buttons=[
+                                            {"id": o["id"], "title": o["title"]}
+                                            for o in interactive_payload.get("options", [])
+                                        ],
+                                    )
+                                elif interactive_payload and interactive_payload.get("render") == "list":
+                                    wa_msg = await self.send_interactive_list_message(
+                                        company_id=company_id,
+                                        phone_number=phone_from,
+                                        body_text=display_text,
+                                        button_label=interactive_payload.get("button_label") or "Choisir",
+                                        rows=interactive_payload.get("options", []),
+                                        section_title=interactive_payload.get("section_title"),
+                                    )
+                                else:
+                                    wa_msg = await self.send_text_message(
+                                        company_id=company_id,
+                                        phone_number=phone_from,
+                                        content=bot_reply,
+                                    )
                                 bot_sent = True
                                 if wa_msg and wa_msg.message_id and not wa_msg.message_id.startswith("temp_"):
                                     wa_msg_id = wa_msg.message_id
@@ -548,7 +765,7 @@ class WhatsAppService:
                             bot_msg = Message(
                                 conversation_id=conversation.id,
                                 sender_type=SenderType.BOT,
-                                content=bot_reply,
+                                content=display_text,
                                 message_type=ConversationMessageType.TEXT,
                                 status=ConversationMessageStatus.SENT if bot_sent else ConversationMessageStatus.FAILED,
                                 sent_at=datetime.utcnow(),

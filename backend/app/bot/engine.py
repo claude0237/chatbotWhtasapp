@@ -1,5 +1,6 @@
 """BotEngine — processes incoming WhatsApp messages and returns the appropriate response"""
 import re
+import json
 import logging
 from datetime import datetime
 from typing import Optional
@@ -14,6 +15,14 @@ from app.logging_config import log_bot
 # Format: "__HANDOFF__:<message to send to client>"
 # The webhook layer detects this prefix and changes conversation status to WAITING.
 HANDOFF_PREFIX = "__HANDOFF__:"
+
+# Sentinel prefix embedded in the return value when a "choice" step should be
+# rendered as native WhatsApp interactive buttons or a list, instead of plain text.
+# Format: "__INTERACTIVE__:<json payload>"
+# Payload: {"render": "buttons"|"list", "body": str, "options": [{"id","title","description"?}],
+#           "button_label"?: str, "section_title"?: str}
+# The webhook layer detects this prefix and dispatches to the WhatsApp interactive API.
+INTERACTIVE_PREFIX = "__INTERACTIVE__:"
 
 from app.bot.models import BotConversationState, BotType
 from app.bot.repositories import (
@@ -100,7 +109,7 @@ class BotEngine:
             scenario = await self.scenario_repo.get_by_trigger_keyword(config.id, normalized)
             if scenario and scenario.steps:
                 first_step = scenario.steps[0]
-                first_message = await self._resolve_step_message(first_step, {}, company_id)
+                first_message = await self._build_step_payload(first_step, {}, company_id)
                 new_state = BotConversationState(
                     company_id=company_id,
                     phone_number=phone_number,
@@ -402,16 +411,17 @@ class BotEngine:
             return None
 
         next_step = steps[state.current_step]
-        next_message = await self._resolve_step_message(next_step, state.collected_data, state.company_id)
-        state.last_bot_message = next_message
-        await self.state_repo.update(state)
 
         # If the current branch had a reply (choice/condition), prepend it to the next step message
+        branch_prefix = None
         branch_reply = self._resolve_reply(current_step, normalized, step_type)
         if branch_reply:
             raw = self._interpolate(branch_reply, state.collected_data)
-            resolved_branch = await self._resolve_catalogue_vars(raw, state.company_id)
-            return f"{resolved_branch}\n\n{next_message}"
+            branch_prefix = await self._resolve_catalogue_vars(raw, state.company_id)
+
+        next_message = await self._build_step_payload(next_step, state.collected_data, state.company_id, prefix_text=branch_prefix)
+        state.last_bot_message = next_message
+        await self.state_repo.update(state)
 
         return next_message
 
@@ -480,6 +490,53 @@ class BotEngine:
         """Extract step message, interpolate vars and resolve catalogue placeholders."""
         raw = self._interpolate(self._extract_step_message(step), collected)
         return await self._resolve_catalogue_vars(raw, company_id)
+
+    async def _build_step_payload(
+        self,
+        step: dict,
+        collected: dict,
+        company_id: UUID,
+        prefix_text: Optional[str] = None,
+    ) -> str:
+        """
+        Build the reply for a step: plain text by default, or an INTERACTIVE_PREFIX-encoded
+        JSON payload when the step is a "choice" step configured to render as native
+        WhatsApp buttons or a list ("render": "buttons"|"list").
+        """
+        message = await self._resolve_step_message(step, collected, company_id)
+        if prefix_text:
+            message = f"{prefix_text}\n\n{message}"
+
+        step_type = step.get("type", "text")
+        render = step.get("render")
+        if step_type == "choice" and render in ("buttons", "list"):
+            choices: dict = step.get("choices", {})
+            options = []
+            for key, val in choices.items():
+                if key == "DEFAULT":
+                    continue
+                if isinstance(val, dict):
+                    label = val.get("label") or key
+                    description = val.get("description")
+                else:
+                    label = key
+                    description = None
+                option = {"id": key, "title": label}
+                if description:
+                    option["description"] = description
+                options.append(option)
+
+            if options:
+                payload = {
+                    "render": render,
+                    "body": message,
+                    "options": options,
+                    "button_label": step.get("list_button_label") or "Choisir",
+                    "section_title": step.get("list_section_title"),
+                }
+                return f"{INTERACTIVE_PREFIX}{json.dumps(payload, ensure_ascii=False)}"
+
+        return message
 
     # ── Helpers ──────────────────────────────────────────────────────────────
 

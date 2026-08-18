@@ -953,6 +953,7 @@ async def get_messages(
                 "phone_number": msg.phone_number,
                 "display_name": msg.display_name,
                 "content": msg.content,
+                "extra_data": msg.extra_data,
                 "media_url": msg.media_url,
                 "template_name": msg.template_name,
                 "sent_at": (msg.sent_at.isoformat() + "Z") if msg.sent_at else None,
