@@ -610,6 +610,10 @@ class WhatsAppService:
         if phone_number:
             return await self.message_repository.get_by_phone_number(company_id, phone_number, skip, limit)
         return await self.message_repository.get_by_company_id(company_id, skip, limit)
+
+    async def delete_messages(self, company_id: UUID, message_ids: list) -> int:
+        """Delete one or more messages, scoped to the company"""
+        return await self.message_repository.delete_by_ids(company_id, message_ids)
     
     async def create_template(
         self,

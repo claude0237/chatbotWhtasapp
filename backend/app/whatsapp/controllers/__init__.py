@@ -965,6 +965,30 @@ async def get_messages(
     }
 
 
+class DeleteMessagesRequest(BaseModel):
+    """Request schema for bulk-deleting WhatsApp messages"""
+    message_ids: List[str] = Field(..., min_length=1)
+
+
+@router.delete("/messages")
+async def delete_messages(
+    request: DeleteMessagesRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+    company_id: str = Depends(get_current_company_id)
+):
+    """Delete one or more WhatsApp messages for the current company"""
+    try:
+        message_ids = [UUID(mid) for mid in request.message_ids]
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid message id format")
+
+    whatsapp_service = WhatsAppService(db)
+    deleted_count = await whatsapp_service.delete_messages(UUID(company_id), message_ids)
+
+    return {"status": "deleted", "deleted_count": deleted_count}
+
+
 @router.post("/templates", status_code=status.HTTP_201_CREATED)
 async def create_template(
     request: CreateTemplateRequest,

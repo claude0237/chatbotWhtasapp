@@ -102,6 +102,22 @@ class WhatsAppMessageRepository:
         await self.db.refresh(message)
         return message
 
+    async def delete_by_ids(self, company_id: UUID, message_ids: List[UUID]) -> int:
+        """Delete messages by IDs, scoped to a company. Returns number deleted."""
+        result = await self.db.execute(
+            select(WhatsAppMessage).where(
+                and_(
+                    WhatsAppMessage.company_id == company_id,
+                    WhatsAppMessage.id.in_(message_ids)
+                )
+            )
+        )
+        messages = result.scalars().all()
+        for message in messages:
+            await self.db.delete(message)
+        await self.db.commit()
+        return len(messages)
+
 
 class WhatsAppTemplateRepository:
     """Repository for WhatsAppTemplate model"""

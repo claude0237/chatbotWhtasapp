@@ -612,6 +612,9 @@ export default function WhatsAppPage() {
   const [error, setError]         = useState('');
   const [success, setSuccess]     = useState('');
   const [activeTab, setActiveTab] = useHashTab<'connexion' | 'messages' | 'templates'>('connexion');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting]   = useState(false);
+  const [conversationPhone, setConversationPhone] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [credForm, setCredForm]   = useState({ 
     phone_number_id: '', access_token: '', waba_id: '', display_phone_number: '',
@@ -682,6 +685,34 @@ export default function WhatsAppPage() {
       setTemplates(response.data);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to fetch templates');
+    }
+  };
+
+  const toggleSelectMessage = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllMessages = () => {
+    setSelectedIds(prev => prev.size === messages.length ? new Set() : new Set(messages.map(m => m.id)));
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(`Supprimer ${selectedIds.size} message(s) ? Cette action est irréversible.`)) return;
+    setDeleting(true);
+    try {
+      await api.delete('/whatsapp/messages', { data: { message_ids: Array.from(selectedIds) } });
+      setSelectedIds(new Set());
+      setSuccess('Message(s) supprimé(s) !');
+      fetchMessages();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Erreur lors de la suppression');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -842,9 +873,28 @@ export default function WhatsAppPage() {
         {/* Messages Tab */}
         {activeTab === 'messages' && (
           <div className="bg-white shadow rounded-xl overflow-hidden">
+            {selectedIds.size > 0 && (
+              <div className="bg-red-50 border-b border-red-200 px-5 py-3 flex items-center justify-between">
+                <span className="text-sm text-red-700 font-medium">{selectedIds.size} message(s) sélectionné(s)</span>
+                <div className="flex gap-2">
+                  <button onClick={() => setSelectedIds(new Set())}
+                    className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800">Annuler</button>
+                  <button onClick={handleDeleteSelected} disabled={deleting}
+                    className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">
+                    {deleting ? 'Suppression...' : '🗑️ Supprimer'}
+                  </button>
+                </div>
+              </div>
+            )}
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-5 py-3 w-10">
+                    <input type="checkbox"
+                      checked={messages.length > 0 && selectedIds.size === messages.length}
+                      onChange={toggleSelectAllMessages}
+                      className="rounded border-gray-300" />
+                  </th>
                   {['Téléphone', 'Direction', 'Contenu', 'Statut', 'Date'].map(h => (
                     <th key={h} className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                   ))}
@@ -852,7 +902,13 @@ export default function WhatsAppPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
                 {messages.map(msg => (
-                  <tr key={msg.id} className="hover:bg-gray-50">
+                  <tr key={msg.id} className={`hover:bg-gray-50 cursor-pointer ${selectedIds.has(msg.id) ? 'bg-green-50' : ''}`}
+                    onClick={() => setConversationPhone(msg.phone_number)}>
+                    <td className="px-5 py-4" onClick={e => e.stopPropagation()}>
+                      <input type="checkbox" checked={selectedIds.has(msg.id)}
+                        onChange={() => toggleSelectMessage(msg.id)}
+                        className="rounded border-gray-300" />
+                    </td>
                     <td className="px-5 py-4">
                       <p className="text-sm font-medium text-gray-900">{msg.phone_number}</p>
                       {msg.display_name && <p className="text-xs text-gray-500">{msg.display_name}</p>}
@@ -951,6 +1007,75 @@ export default function WhatsAppPage() {
           </div>
         </div>
       )}
+
+      {/* Modal Conversation */}
+      {conversationPhone && (
+        <ConversationModal
+          phoneNumber={conversationPhone}
+          onClose={() => setConversationPhone(null)}
+        />
+      )}
     </AppLayout>
+  );
+}
+
+function ConversationModal({ phoneNumber, onClose }: { phoneNumber: string; onClose: () => void }) {
+  const [convMessages, setConvMessages] = useState<WhatsAppMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const r = await api.get('/whatsapp/messages', { params: { phone_number: phoneNumber, limit: 500 } });
+        if (!cancelled) {
+          const msgs: WhatsAppMessage[] = r.data.messages || [];
+          // Oldest first, to read the conversation top to bottom
+          msgs.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+          setConvMessages(msgs);
+        }
+      } catch (err: any) {
+        if (!cancelled) setError(err.response?.data?.detail || 'Erreur chargement conversation');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [phoneNumber]);
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl w-full max-w-lg shadow-xl flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+          <div>
+            <h3 className="font-bold text-gray-900">💬 Conversation</h3>
+            <p className="text-xs text-gray-500 font-mono">{phoneNumber}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 bg-gray-50">
+          {loading && <div className="text-center text-gray-400 text-sm py-8">Chargement...</div>}
+          {error && <div className="text-center text-red-500 text-sm py-8">{error}</div>}
+          {!loading && !error && convMessages.length === 0 && (
+            <div className="text-center text-gray-400 text-sm py-8">Aucun message</div>
+          )}
+          {!loading && !error && convMessages.map(msg => (
+            <div key={msg.id} className={`flex ${msg.direction === 'OUTGOING' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
+                msg.direction === 'OUTGOING' ? 'bg-green-600 text-white' : 'bg-white border border-gray-200 text-gray-800'
+              }`}>
+                <p className="whitespace-pre-wrap break-words">{msg.content || '(média)'}</p>
+                <p className={`text-[10px] mt-1 ${msg.direction === 'OUTGOING' ? 'text-green-100' : 'text-gray-400'}`}>
+                  {new Date(msg.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  {' · '}{msg.status}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
