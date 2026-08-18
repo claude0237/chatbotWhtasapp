@@ -105,7 +105,29 @@ class WhatsAppService:
             "access_token": access_token,
             "webhook_verify_token": webhook_verify_token
         }
-    
+
+    # Generous timeout for the Meta Graph API: default httpx timeout (5s) is too
+    # aggressive on flaky networks/tunnels and causes spurious ConnectTimeout errors.
+    _HTTP_TIMEOUT = httpx.Timeout(connect=15.0, read=30.0, write=15.0, pool=15.0)
+
+    async def _post_meta_api(self, url: str, headers: dict, json_payload: dict) -> httpx.Response:
+        """
+        POST to the Meta Graph API with a generous timeout and a single retry on
+        transient connection errors (ConnectTimeout/ConnectError), common on flaky
+        networks/tunnels.
+        """
+        last_exc: Optional[Exception] = None
+        for attempt in range(2):
+            try:
+                async with httpx.AsyncClient(timeout=self._HTTP_TIMEOUT) as client:
+                    return await client.post(url, headers=headers, json=json_payload)
+            except (httpx.ConnectTimeout, httpx.ConnectError) as e:
+                last_exc = e
+                if attempt == 0:
+                    logger.warning(f"Meta API connection failed ({type(e).__name__}), retrying once...")
+                    continue
+        raise last_exc
+
     async def send_text_message(
         self,
         company_id: UUID,
@@ -132,58 +154,57 @@ class WhatsAppService:
         
         # Send via WhatsApp API
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{self.base_url}/{creds['phone_number_id']}/messages",
-                    headers={
-                        "Authorization": f"Bearer {creds['access_token']}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "messaging_product": "whatsapp",
-                        "to": phone_number,
-                        "type": "text",
-                        "text": {"body": content}
-                    }
+            response = await self._post_meta_api(
+                f"{self.base_url}/{creds['phone_number_id']}/messages",
+                headers={
+                    "Authorization": f"Bearer {creds['access_token']}",
+                    "Content-Type": "application/json"
+                },
+                json_payload={
+                    "messaging_product": "whatsapp",
+                    "to": phone_number,
+                    "type": "text",
+                    "text": {"body": content}
+                }
+            )
+
+            logger.info(f"WhatsApp API response status: {response.status_code}")
+            logger.info(f"WhatsApp API response body: {response.text}")
+
+            if response.status_code == 200:
+                data = response.json()
+                whatsapp_message_id = data.get("messages", [{}])[0].get("id")
+
+                # Update message with WhatsApp ID
+                message.message_id = whatsapp_message_id
+                message.status = MessageStatus.SENT
+                message.sent_at = datetime.utcnow()
+                await self.message_repository.update(message)
+
+                log_whatsapp(
+                    logger,
+                    logging.INFO,
+                    "WHATSAPP_SEND_SUCCESS",
+                    company_id=str(company_id),
+                    phone_number=phone_number,
+                    message_id=whatsapp_message_id,
+                    status_code=response.status_code
                 )
-                
-                logger.info(f"WhatsApp API response status: {response.status_code}")
-                logger.info(f"WhatsApp API response body: {response.text}")
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    whatsapp_message_id = data.get("messages", [{}])[0].get("id")
-                    
-                    # Update message with WhatsApp ID
-                    message.message_id = whatsapp_message_id
-                    message.status = MessageStatus.SENT
-                    message.sent_at = datetime.utcnow()
-                    await self.message_repository.update(message)
-                    
-                    log_whatsapp(
-                        logger,
-                        logging.INFO,
-                        "WHATSAPP_SEND_SUCCESS",
-                        company_id=str(company_id),
-                        phone_number=phone_number,
-                        message_id=whatsapp_message_id,
-                        status_code=response.status_code
-                    )
-                else:
-                    logger.warning(f"Meta API send_text error {response.status_code}: {response.text}")
-                    message.status = MessageStatus.FAILED
-                    await self.message_repository.update(message)
-                    
-                    log_whatsapp(
-                        logger,
-                        logging.ERROR,
-                        "WHATSAPP_API_ERROR",
-                        company_id=str(company_id),
-                        phone_number=phone_number,
-                        status_code=response.status_code,
-                        error_message=response.text
-                    )
-                    
+            else:
+                logger.warning(f"Meta API send_text error {response.status_code}: {response.text}")
+                message.status = MessageStatus.FAILED
+                await self.message_repository.update(message)
+
+                log_whatsapp(
+                    logger,
+                    logging.ERROR,
+                    "WHATSAPP_API_ERROR",
+                    company_id=str(company_id),
+                    phone_number=phone_number,
+                    status_code=response.status_code,
+                    error_message=response.text
+                )
+
         except Exception as e:
             error_msg = str(e) if str(e) else f"{type(e).__name__}"
             logger.error(f"WhatsApp send_text exception: {error_msg}", exc_info=True)
@@ -249,27 +270,26 @@ class WhatsAppService:
         }
 
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{self.base_url}/{creds['phone_number_id']}/messages",
-                    headers={
-                        "Authorization": f"Bearer {creds['access_token']}",
-                        "Content-Type": "application/json"
-                    },
-                    json=payload
-                )
+            response = await self._post_meta_api(
+                f"{self.base_url}/{creds['phone_number_id']}/messages",
+                headers={
+                    "Authorization": f"Bearer {creds['access_token']}",
+                    "Content-Type": "application/json"
+                },
+                json_payload=payload
+            )
 
-                if response.status_code == 200:
-                    data = response.json()
-                    whatsapp_message_id = data.get("messages", [{}])[0].get("id")
-                    message.message_id = whatsapp_message_id
-                    message.status = MessageStatus.SENT
-                    message.sent_at = datetime.utcnow()
-                    await self.message_repository.update(message)
-                else:
-                    logger.warning(f"Meta API send_interactive_buttons error {response.status_code}: {response.text}")
-                    message.status = MessageStatus.FAILED
-                    await self.message_repository.update(message)
+            if response.status_code == 200:
+                data = response.json()
+                whatsapp_message_id = data.get("messages", [{}])[0].get("id")
+                message.message_id = whatsapp_message_id
+                message.status = MessageStatus.SENT
+                message.sent_at = datetime.utcnow()
+                await self.message_repository.update(message)
+            else:
+                logger.warning(f"Meta API send_interactive_buttons error {response.status_code}: {response.text}")
+                message.status = MessageStatus.FAILED
+                await self.message_repository.update(message)
 
         except Exception as e:
             logger.error(f"WhatsApp send_interactive_buttons exception: {e}", exc_info=True)
@@ -336,27 +356,26 @@ class WhatsAppService:
         }
 
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{self.base_url}/{creds['phone_number_id']}/messages",
-                    headers={
-                        "Authorization": f"Bearer {creds['access_token']}",
-                        "Content-Type": "application/json"
-                    },
-                    json=payload
-                )
+            response = await self._post_meta_api(
+                f"{self.base_url}/{creds['phone_number_id']}/messages",
+                headers={
+                    "Authorization": f"Bearer {creds['access_token']}",
+                    "Content-Type": "application/json"
+                },
+                json_payload=payload
+            )
 
-                if response.status_code == 200:
-                    data = response.json()
-                    whatsapp_message_id = data.get("messages", [{}])[0].get("id")
-                    message.message_id = whatsapp_message_id
-                    message.status = MessageStatus.SENT
-                    message.sent_at = datetime.utcnow()
-                    await self.message_repository.update(message)
-                else:
-                    logger.warning(f"Meta API send_interactive_list error {response.status_code}: {response.text}")
-                    message.status = MessageStatus.FAILED
-                    await self.message_repository.update(message)
+            if response.status_code == 200:
+                data = response.json()
+                whatsapp_message_id = data.get("messages", [{}])[0].get("id")
+                message.message_id = whatsapp_message_id
+                message.status = MessageStatus.SENT
+                message.sent_at = datetime.utcnow()
+                await self.message_repository.update(message)
+            else:
+                logger.warning(f"Meta API send_interactive_list error {response.status_code}: {response.text}")
+                message.status = MessageStatus.FAILED
+                await self.message_repository.update(message)
 
         except Exception as e:
             logger.error(f"WhatsApp send_interactive_list exception: {e}", exc_info=True)
