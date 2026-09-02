@@ -522,7 +522,7 @@ export default function BotPage() {
     <AppLayout>
       <div className="max-w-5xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">🤖 Chatbot</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">🤖 Chatbot</h1>
           <div className="flex gap-2">
             {config && (
               <button onClick={startSimulation}
@@ -539,10 +539,10 @@ export default function BotPage() {
           </div>
         </div>
 
-        {error && <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded-lg mb-4 flex justify-between text-sm"><span>{error}</span><button onClick={() => setError('')}>✕</button></div>}
+        {error && <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-2 rounded-lg mb-4 flex justify-between text-sm"><span>{error}</span><button onClick={() => setError('')}>✕</button></div>}
 
         {!config && (
-          <div className="bg-white rounded-xl shadow p-10 text-center text-gray-400">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-10 text-center text-gray-400">
             <p className="text-5xl mb-3">🤖</p>
             <p className="text-sm">Aucune configuration de bot. Cliquez sur « Créer le bot » pour commencer.</p>
           </div>
@@ -550,15 +550,15 @@ export default function BotPage() {
 
         {config && (
           <>
-            <div className="border-b border-gray-200 mb-6">
+            <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
               <nav className="-mb-px flex space-x-6">
                 {TABS.map(t => (
                   <button key={t.key} onClick={() => !t.disabled && setActiveTab(t.key as any)}
                     disabled={t.disabled}
                     className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                      activeTab === t.key ? 'border-green-500 text-green-600' :
+                      activeTab === t.key ? 'border-green-500 text-green-600 dark:text-green-400' :
                       t.disabled ? 'border-transparent text-gray-300 cursor-not-allowed' :
-                      'border-transparent text-gray-500 hover:text-gray-700'
+                      'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
                     }`}>
                     {t.label}
                   </button>
@@ -568,9 +568,9 @@ export default function BotPage() {
 
             {/* ── CONFIG ── */}
             {activeTab === 'config' && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex justify-between items-center mb-5">
-                  <h2 className="text-lg font-semibold text-gray-900">Configuration générale</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Configuration générale</h2>
                   <button onClick={() => { setConfigForm({ name: config.name, welcome_message: config.welcome_message || '', away_message: config.away_message || '', closing_message: config.closing_message || '', unknown_message: config.unknown_message || '', language: config.language, timezone: config.timezone, bot_type: config.bot_type || 'NATIVE', followup_timeout_minutes: (config as any).followup_timeout_minutes ?? 60, followup_max_retries: (config as any).followup_max_retries ?? 3, business_hours: config.business_hours || null, ml_enabled: config.ml_enabled || false, ml_provider: config.ml_provider || '', ml_model: config.ml_model || '', ml_temperature: config.ml_temperature || '', ml_max_tokens: config.ml_max_tokens || 500, fallback_strategy: config.fallback_strategy || '', confidence_threshold: config.confidence_threshold || '' }); setShowConfigModal(true); }}
                     className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 text-sm font-medium">
                     ✏️ Modifier
@@ -589,22 +589,22 @@ export default function BotPage() {
                     { label: 'Délai relance (min)',  value: String((config as any).followup_timeout_minutes ?? 60) },
                     { label: 'Nb relances max',      value: String((config as any).followup_max_retries ?? 3) },
                   ].map(f => (
-                    <div key={f.label} className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs font-medium text-gray-500 mb-1">{f.label}</p>
-                      <p className="text-sm text-gray-900">{f.value}</p>
+                    <div key={f.label} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{f.label}</p>
+                      <p className="text-sm text-gray-900 dark:text-white">{f.value}</p>
                     </div>
                   ))}
                 </div>
                 {/* Business hours display */}
                 {config.business_hours && (
-                  <div className="mt-5 bg-gray-50 rounded-lg p-4">
-                    <p className="text-xs font-medium text-gray-500 mb-2">🕐 Horaires d'ouverture</p>
+                  <div className="mt-5 bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">🕐 Horaires d'ouverture</p>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       {(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const).map(day => {
                         const labels: Record<string, string> = { monday: 'Lun', tuesday: 'Mar', wednesday: 'Mer', thursday: 'Jeu', friday: 'Ven', saturday: 'Sam', sunday: 'Dim' };
                         const dayConf = config.business_hours?.[day];
                         return (
-                          <div key={day} className={`text-xs rounded px-2 py-1.5 ${dayConf ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-400'}`}>
+                          <div key={day} className={`text-xs rounded px-2 py-1.5 ${dayConf ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/30 text-red-400 dark:text-red-300'}`}>
                             <span className="font-medium">{labels[day]}</span>{' '}
                             {dayConf ? `${dayConf.open}–${dayConf.close}` : 'Fermé'}
                           </div>
@@ -618,10 +618,10 @@ export default function BotPage() {
 
             {/* ── SCENARIOS ── */}
             {activeTab === 'scenarios' && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex justify-between items-center mb-5">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Scénarios</h2>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Scénarios</h2>
                     <p className="text-xs text-gray-400 mt-0.5">Un scénario se déclenche quand le client envoie le mot-clé déclencheur.</p>
                   </div>
                   <button onClick={openNewScenario} className="bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 text-sm font-medium">+ Nouveau</button>
@@ -629,21 +629,21 @@ export default function BotPage() {
                 <div className="space-y-3">
                   {scenarios.length === 0 && <p className="text-center text-gray-400 py-8 text-sm">Aucun scénario. Créez-en un pour commencer.</p>}
                   {scenarios.map(s => (
-                    <div key={s.id} className="border border-gray-200 rounded-lg p-4 flex items-start justify-between gap-4">
+                    <div key={s.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-semibold text-gray-900">{s.name}</span>
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${s.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          <span className="text-sm font-semibold text-gray-900 dark:text-white">{s.name}</span>
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${s.is_active ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400'}`}>
                             {s.is_active ? 'Actif' : 'Inactif'}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                          <p className="text-xs text-gray-500">Déclencheur : <span className="font-mono bg-gray-100 px-1 rounded">{s.trigger_keyword}</span></p>
-                          <span className="text-xs text-indigo-600 font-medium">{s.steps.length} étape{s.steps.length > 1 ? 's' : ''}</span>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Déclencheur : <span className="font-mono bg-gray-100 dark:bg-gray-900 px-1 rounded">{s.trigger_keyword}</span></p>
+                          <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">{s.steps.length} étape{s.steps.length > 1 ? 's' : ''}</span>
                         </div>
                         <div className="mt-1.5 space-y-0.5">
                           {s.steps.slice(0, 2).map((st: any, i: number) => (
-                            <p key={i} className="text-xs text-gray-500 truncate">
+                            <p key={i} className="text-xs text-gray-500 dark:text-gray-400 truncate">
                               <span className="text-gray-400 font-medium">{i + 1}.</span> {st.message || st.text || st.response || ''}
                             </p>
                           ))}
@@ -651,8 +651,8 @@ export default function BotPage() {
                         </div>
                       </div>
                       <div className="flex gap-2 flex-shrink-0">
-                        <button onClick={() => openEditScenario(s)} className="text-indigo-600 hover:text-indigo-800 text-xs font-medium">Modifier</button>
-                        <button onClick={() => deleteScenario(s.id)} className="text-red-500 hover:text-red-700 text-xs font-medium">Supprimer</button>
+                        <button onClick={() => openEditScenario(s)} className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 text-xs font-medium">Modifier</button>
+                        <button onClick={() => deleteScenario(s.id)} className="text-red-500 dark:text-red-300 hover:text-red-700 text-xs font-medium">Supprimer</button>
                       </div>
                     </div>
                   ))}
@@ -662,10 +662,10 @@ export default function BotPage() {
 
             {/* ── KEYWORDS ── */}
             {activeTab === 'keywords' && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex justify-between items-center mb-5">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Mots-clés</h2>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Mots-clés</h2>
                     <p className="text-xs text-gray-400 mt-0.5">Réponse instantanée quand le client mentionne le mot-clé.</p>
                   </div>
                   <button onClick={openNewKeyword} className="bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 text-sm font-medium">+ Nouveau</button>
@@ -673,24 +673,24 @@ export default function BotPage() {
                 {keywords.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-4">
                     {[...new Set(keywords.map(k => k.category).filter(Boolean))].map(cat => (
-                      <span key={cat} className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">{cat}</span>
+                      <span key={cat} className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full font-medium">{cat}</span>
                     ))}
                   </div>
                 )}
                 <div className="space-y-3">
                   {keywords.length === 0 && <p className="text-center text-gray-400 py-8 text-sm">Aucun mot-clé. Ajoutez-en un pour que le bot réponde automatiquement.</p>}
                   {keywords.map(k => (
-                    <div key={k.id} className="border border-gray-200 rounded-lg p-4 flex items-start justify-between gap-4">
+                    <div key={k.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono text-sm font-semibold text-gray-900 bg-gray-100 px-2 py-0.5 rounded">{k.keyword}</span>
-                          {k.category && <span className="text-xs text-amber-600 font-medium">{k.category}</span>}
+                          <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-900 px-2 py-0.5 rounded">{k.keyword}</span>
+                          {k.category && <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">{k.category}</span>}
                         </div>
-                        <p className="text-sm text-gray-600 line-clamp-2">{k.response}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{k.response}</p>
                       </div>
                       <div className="flex gap-2 flex-shrink-0">
-                        <button onClick={() => openEditKeyword(k)} className="text-indigo-600 hover:text-indigo-800 text-xs font-medium">Modifier</button>
-                        <button onClick={() => deleteKeyword(k.id)} className="text-red-500 hover:text-red-700 text-xs font-medium">Supprimer</button>
+                        <button onClick={() => openEditKeyword(k)} className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 text-xs font-medium">Modifier</button>
+                        <button onClick={() => deleteKeyword(k.id)} className="text-red-500 dark:text-red-300 hover:text-red-700 text-xs font-medium">Supprimer</button>
                       </div>
                     </div>
                   ))}
@@ -700,9 +700,9 @@ export default function BotPage() {
 
             {/* ── SIMULATION ── */}
             {activeTab === 'simulation' && (
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col" style={{ height: '520px' }}>
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col" style={{ height: '520px' }}>
                 <div className="bg-green-600 px-4 py-3 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-sm">🤖</div>
+                  <div className="w-8 h-8 rounded-full bg-white/20 dark:bg-gray-800/20 flex items-center justify-center text-white font-bold text-sm">🤖</div>
                   <div>
                     <p className="text-white font-semibold text-sm">{config.name}</p>
                     <p className="text-green-100 text-xs">Simulation locale — test hors WhatsApp</p>
@@ -711,7 +711,7 @@ export default function BotPage() {
                     className="ml-auto text-green-100 hover:text-white text-xs">↺ Recommencer</button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-gray-800">
                   {simMessages.length === 0 && (
                     <p className="text-center text-gray-400 text-sm mt-8">Envoyez un message pour tester le bot.</p>
                   )}
@@ -720,7 +720,7 @@ export default function BotPage() {
                       <div className={`max-w-xs px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap break-words ${
                         m.role === 'user'
                           ? 'bg-green-600 text-white rounded-br-sm'
-                          : 'bg-white border border-gray-200 text-gray-800 rounded-bl-sm'
+                          : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-bl-sm'
                       }`}>
                         {m.text.split('\n').map((line, li) => {
                           const formatted = line
@@ -734,13 +734,13 @@ export default function BotPage() {
                   <div ref={simEndRef} />
                 </div>
 
-                <div className="border-t border-gray-200 p-3 flex gap-2 bg-white">
+                <div className="border-t border-gray-200 dark:border-gray-700 p-3 flex gap-2 bg-white dark:bg-gray-800">
                   <input
                     value={simInput}
                     onChange={e => setSimInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && simulateSend()}
                     placeholder="Tapez un message..."
-                    className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="flex-1 border border-gray-300 dark:border-gray-600 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                   <button onClick={simulateSend}
                     className="bg-green-600 text-white px-4 py-2 rounded-full hover:bg-green-700 text-sm font-medium">
@@ -756,8 +756,8 @@ export default function BotPage() {
       {/* ── Modal Config ── */}
       {showConfigModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
-            <h3 className="font-bold text-gray-900 mb-4">{config ? '✏️ Modifier le bot' : '🤖 Créer le bot'}</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+            <h3 className="font-bold text-gray-900 dark:text-white mb-4">{config ? '✏️ Modifier le bot' : '🤖 Créer le bot'}</h3>
             <form onSubmit={async e => { e.preventDefault(); setSubmitting(true); try {
               const formData = { ...configForm };
               // Auto-set ml_enabled based on bot_type
@@ -768,39 +768,39 @@ export default function BotPage() {
               }
               if (config) await api.put('/bot/config', formData); else await api.post('/bot/config', formData);
               setShowConfigModal(false); fetchBotConfig(); } catch (err: any) { setError(err.response?.data?.detail || 'Erreur'); } finally { setSubmitting(false); } }} className="space-y-3">
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Nom du bot *</label>
-                <input required value={configForm.name} onChange={e => setConfigForm({...configForm, name: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" placeholder="Mon chatbot" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Nom du bot *</label>
+                <input required value={configForm.name} onChange={e => setConfigForm({...configForm, name: e.target.value})} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" placeholder="Mon chatbot" /></div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mode du bot</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Mode du bot</label>
                 {companyPlan === 'FREE' ? (
-                  <div className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                  <div className="text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
                     Mode Natif (règles, scénarios, mots-clés)
-                    <p className="text-xs text-gray-500 mt-1">Le ML n'est pas disponible avec le plan FREE. Contactez le Super Admin pour passer à un plan supérieur.</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Le ML n'est pas disponible avec le plan FREE. Contactez le Super Admin pour passer à un plan supérieur.</p>
                   </div>
                 ) : (
                   <select 
                     value={configForm.bot_type || 'NATIVE'}
                     onChange={e => setConfigForm({...configForm, bot_type: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-green-500"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-2 focus:ring-green-500"
                   >
                     <option value="NATIVE">Mode Natif (règles, scénarios, mots-clés + fallback ML)</option>
                     <option value="ML">Mode ML (Machine Learning uniquement)</option>
                   </select>
                 )}
               </div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Message de bienvenue</label>
-                <textarea value={configForm.welcome_message} onChange={e => setConfigForm({...configForm, welcome_message: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" rows={2} placeholder="Bonjour ! Comment puis-je vous aider ?" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Message de clôture</label>
-                <textarea value={configForm.closing_message} onChange={e => setConfigForm({...configForm, closing_message: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" rows={2} placeholder="Merci, à bientôt !" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Message absence</label>
-                <textarea value={configForm.away_message} onChange={e => setConfigForm({...configForm, away_message: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" rows={2} placeholder="Nous sommes absents pour le moment..." /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Message inconnu</label>
-                <textarea value={configForm.unknown_message} onChange={e => setConfigForm({...configForm, unknown_message: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" rows={2} placeholder="Je ne comprends pas. Souhaitez-vous parler à un agent ?" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Message de bienvenue</label>
+                <textarea value={configForm.welcome_message} onChange={e => setConfigForm({...configForm, welcome_message: e.target.value})} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" rows={2} placeholder="Bonjour ! Comment puis-je vous aider ?" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Message de clôture</label>
+                <textarea value={configForm.closing_message} onChange={e => setConfigForm({...configForm, closing_message: e.target.value})} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" rows={2} placeholder="Merci, à bientôt !" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Message absence</label>
+                <textarea value={configForm.away_message} onChange={e => setConfigForm({...configForm, away_message: e.target.value})} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" rows={2} placeholder="Nous sommes absents pour le moment..." /></div>
+              <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Message inconnu</label>
+                <textarea value={configForm.unknown_message} onChange={e => setConfigForm({...configForm, unknown_message: e.target.value})} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" rows={2} placeholder="Je ne comprends pas. Souhaitez-vous parler à un agent ?" /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Langue</label>
-                  <input value={configForm.language} onChange={e => setConfigForm({...configForm, language: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="fr" /></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Fuseau horaire</label>
-                  <select value={configForm.timezone} onChange={e => setConfigForm({...configForm, timezone: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-green-500">
+                <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Langue</label>
+                  <input value={configForm.language} onChange={e => setConfigForm({...configForm, language: e.target.value})} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm" placeholder="fr" /></div>
+                <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Fuseau horaire</label>
+                  <select value={configForm.timezone} onChange={e => setConfigForm({...configForm, timezone: e.target.value})} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-2 focus:ring-green-500">
                     <option value="" disabled>Choisir un fuseau horaire</option>
                     {TIMEZONES.map(tz => (
                       <option key={tz.value} value={tz.value}>{tz.label}</option>
@@ -808,7 +808,7 @@ export default function BotPage() {
                   </select></div>
               </div>
               <div className="border-t pt-3 mt-1">
-                <p className="text-xs font-semibold text-gray-500 mb-2">🕐 Horaires d'ouverture <span className="font-normal text-gray-400">(le bot envoie le message d'absence hors de ces horaires)</span></p>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">🕐 Horaires d'ouverture <span className="font-normal text-gray-400">(le bot envoie le message d'absence hors de ces horaires)</span></p>
                 <div className="space-y-1.5">
                   {(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const).map(day => {
                     const labels: Record<string, string> = { monday: 'Lundi', tuesday: 'Mardi', wednesday: 'Mercredi', thursday: 'Jeudi', friday: 'Vendredi', saturday: 'Samedi', sunday: 'Dimanche' };
@@ -817,29 +817,29 @@ export default function BotPage() {
                     const isOpen = !!dayConf;
                     return (
                       <div key={day} className="flex items-center gap-2">
-                        <label className="w-20 text-xs font-medium text-gray-700">{labels[day]}</label>
+                        <label className="w-20 text-xs font-medium text-gray-700 dark:text-gray-200">{labels[day]}</label>
                         <input type="checkbox" checked={isOpen} onChange={e => {
                           const newBh = { ...bh };
                           if (e.target.checked) newBh[day] = { open: '07:00', close: '17:00' };
                           else newBh[day] = null;
                           setConfigForm({ ...configForm, business_hours: newBh });
-                        }} className="rounded border-gray-300 text-green-600 focus:ring-green-500" />
+                        }} className="rounded border-gray-300 dark:border-gray-600 text-green-600 dark:text-green-400 focus:ring-green-500" />
                         {isOpen && (
                           <>
                             <input type="time" value={dayConf?.open || '07:00'} onChange={e => {
                               const newBh = { ...bh };
                               newBh[day] = { open: e.target.value, close: dayConf?.close || '17:00' };
                               setConfigForm({ ...configForm, business_hours: newBh });
-                            }} className="border border-gray-300 rounded px-2 py-1 text-xs" />
+                            }} className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs" />
                             <span className="text-xs text-gray-400">à</span>
                             <input type="time" value={dayConf?.close || '17:00'} onChange={e => {
                               const newBh = { ...bh };
                               newBh[day] = { open: dayConf?.open || '07:00', close: e.target.value };
                               setConfigForm({ ...configForm, business_hours: newBh });
-                            }} className="border border-gray-300 rounded px-2 py-1 text-xs" />
+                            }} className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs" />
                           </>
                         )}
-                        {!isOpen && <span className="text-xs text-red-400 italic">Fermé</span>}
+                        {!isOpen && <span className="text-xs text-red-400 dark:text-red-300 italic">Fermé</span>}
                       </div>
                     );
                   })}
@@ -847,17 +847,17 @@ export default function BotPage() {
                 <p className="text-xs text-gray-400 mt-2">💡 Si aucun jour n'est coché, le bot est actif 24h/24.</p>
               </div>
               <div className="border-t pt-3 mt-1">
-                <p className="text-xs font-semibold text-gray-500 mb-2">⏱ Relance automatique (inactivité scénario)</p>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">⏱ Relance automatique (inactivité scénario)</p>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Délai avant relance <span className="text-gray-400">(minutes)</span></label>
-                    <input type="number" min={1} value={configForm.followup_timeout_minutes} onChange={e => setConfigForm({...configForm, followup_timeout_minutes: parseInt(e.target.value) || 60})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" /></div>
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Nb max de relances</label>
-                    <input type="number" min={1} max={10} value={configForm.followup_max_retries} onChange={e => setConfigForm({...configForm, followup_max_retries: parseInt(e.target.value) || 3})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Délai avant relance <span className="text-gray-400">(minutes)</span></label>
+                    <input type="number" min={1} value={configForm.followup_timeout_minutes} onChange={e => setConfigForm({...configForm, followup_timeout_minutes: parseInt(e.target.value) || 60})} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm" /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Nb max de relances</label>
+                    <input type="number" min={1} max={10} value={configForm.followup_max_retries} onChange={e => setConfigForm({...configForm, followup_max_retries: parseInt(e.target.value) || 3})} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm" /></div>
                 </div>
                 <p className="text-xs text-gray-400 mt-1">Après <strong>{configForm.followup_max_retries}</strong> relances sans réponse la conversation est automatiquement clôturée.</p>
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowConfigModal(false)} className="flex-1 border border-gray-300 py-2 rounded-lg text-sm hover:bg-gray-50">Annuler</button>
+                <button type="button" onClick={() => setShowConfigModal(false)} className="flex-1 border border-gray-300 dark:border-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700">Annuler</button>
                 <button type="submit" disabled={submitting} className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 disabled:opacity-50">{submitting ? '...' : 'Enregistrer'}</button>
               </div>
             </form>
@@ -868,39 +868,39 @@ export default function BotPage() {
       {/* ── Modal Scénario ── */}
       {showScenarioModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-2xl shadow-xl max-h-[92vh] overflow-y-auto">
-            <h3 className="font-bold text-gray-900 mb-4">{editingScenario ? '✏️ Modifier le scénario' : '+ Nouveau scénario'}</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-2xl shadow-xl max-h-[92vh] overflow-y-auto">
+            <h3 className="font-bold text-gray-900 dark:text-white mb-4">{editingScenario ? '✏️ Modifier le scénario' : '+ Nouveau scénario'}</h3>
             <form onSubmit={saveScenario} className="space-y-4">
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom du scénario *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Nom du scénario *</label>
                   <input required value={scenarioForm.name} onChange={e => setScenarioForm({...scenarioForm, name: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" placeholder="Ex: Commande produit" />
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" placeholder="Ex: Commande produit" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mot-clé déclencheur *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Mot-clé déclencheur *</label>
                   <input required value={scenarioForm.trigger_keyword} onChange={e => setScenarioForm({...scenarioForm, trigger_keyword: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-green-500 uppercase" placeholder="Ex: COMMANDER" />
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-green-500 uppercase" placeholder="Ex: COMMANDER" />
                 </div>
               </div>
 
               {/* Steps builder */}
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <label className="block text-sm font-medium text-gray-700">Étapes du scénario *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Étapes du scénario *</label>
                   <span className="text-xs text-gray-400">{scenarioSteps.length} étape{scenarioSteps.length > 1 ? 's' : ''}</span>
                 </div>
                 <div className="space-y-3">
                   {(() => {
                     const InsertLink = ({ position }: { position: number }) => (
                       <div className="flex items-center gap-2 group">
-                        <div className="flex-1 border-t border-dashed border-gray-300 group-hover:border-green-400" />
+                        <div className="flex-1 border-t border-dashed border-gray-300 dark:border-gray-600 group-hover:border-green-400" />
                         <button type="button" onClick={() => insertStepAt(position)}
                           className="text-[11px] text-gray-400 hover:text-green-600 flex items-center gap-1 px-1">
                           ➕ Insérer une étape ici
                         </button>
-                        <div className="flex-1 border-t border-dashed border-gray-300 group-hover:border-green-400" />
+                        <div className="flex-1 border-t border-dashed border-gray-300 dark:border-gray-600 group-hover:border-green-400" />
                       </div>
                     );
                     return (
@@ -908,9 +908,9 @@ export default function BotPage() {
                         <InsertLink position={0} />
                         {scenarioSteps.map((step, idx) => (
                           <div key={idx}>
-                          <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-800">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-6 h-6 rounded-full bg-green-100 text-green-700 text-xs font-bold flex items-center justify-center flex-shrink-0">{idx + 1}</div>
+                        <div className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 text-xs font-bold flex items-center justify-center flex-shrink-0">{idx + 1}</div>
                         <select
                           value={step.type}
                           onChange={e => {
@@ -918,7 +918,7 @@ export default function BotPage() {
                             updated[idx] = { ...updated[idx], type: e.target.value as StepType };
                             setScenarioSteps(updated);
                           }}
-                          className="border border-gray-300 rounded-lg px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-green-500">
+                          className="border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-xs bg-white dark:bg-gray-800 focus:ring-2 focus:ring-green-500">
                           <option value="text">📝 Texte (linéaire)</option>
                           <option value="choice">🔢 Choix (1, 2, 3...)</option>
                           <option value="condition">🔀 Condition (si/sinon)</option>
@@ -927,69 +927,69 @@ export default function BotPage() {
                         </select>
                         {scenarioSteps.length > 1 && (
                           <button type="button" onClick={() => removeStepAt(idx)}
-                            className="ml-auto text-red-400 hover:text-red-600 text-sm">✕ Supprimer</button>
+                            className="ml-auto text-red-400 dark:text-red-300 hover:text-red-600 text-sm">✕ Supprimer</button>
                         )}
                       </div>
 
                       {step.type === 'catalogue' ? (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 space-y-2">
-                          <p className="text-xs font-semibold text-green-700">🛍️ Affichage du catalogue produits</p>
+                        <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 space-y-2">
+                          <p className="text-xs font-semibold text-green-700 dark:text-green-300">🛍️ Affichage du catalogue produits</p>
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <label className="block text-xs text-gray-600 mb-1">Filtrer par catégorie <span className="text-gray-400">(optionnel)</span></label>
+                              <label className="block text-xs text-gray-600 dark:text-gray-300 mb-1">Filtrer par catégorie <span className="text-gray-400">(optionnel)</span></label>
                               <select
                                 value={step.catalogue_category}
                                 onChange={e => { const u = [...scenarioSteps]; u[idx] = { ...u[idx], catalogue_category: e.target.value }; setScenarioSteps(u); }}
-                                className="w-full border border-green-300 rounded-lg px-2 py-1.5 text-xs bg-white focus:ring-1 focus:ring-green-500">
+                                className="w-full border border-green-300 dark:border-green-700 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-800 focus:ring-1 focus:ring-green-500">
                                 <option value="">Tous les produits</option>
                                 {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs text-gray-600 mb-1">Message avant la liste <span className="text-gray-400">(optionnel)</span></label>
+                              <label className="block text-xs text-gray-600 dark:text-gray-300 mb-1">Message avant la liste <span className="text-gray-400">(optionnel)</span></label>
                               <input
                                 value={step.message}
                                 onChange={e => { const u = [...scenarioSteps]; u[idx] = { ...u[idx], message: e.target.value }; setScenarioSteps(u); }}
-                                className="w-full border border-green-300 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-green-500 bg-white"
+                                className="w-full border border-green-300 dark:border-green-700 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-green-500 bg-white dark:bg-gray-800"
                                 placeholder="Ex: Voici nos articles disponibles :" />
                             </div>
                           </div>
-                          <p className="text-xs text-green-600">Le bot enverra la liste des produits{step.catalogue_category ? ` de la catégorie <strong>${step.catalogue_category}</strong>` : ''} automatiquement.</p>
-                          <p className="text-xs text-gray-500 mt-1">💡 Vous pouvez aussi utiliser <span className="font-mono bg-white px-1 rounded border">{'{catalogue}'}</span> ou <span className="font-mono bg-white px-1 rounded border">{`{catalogue:${step.catalogue_category || 'NomCat'}}`}</span> dans n'importe quel message.</p>
+                          <p className="text-xs text-green-600 dark:text-green-400">Le bot enverra la liste des produits{step.catalogue_category ? ` de la catégorie <strong>${step.catalogue_category}</strong>` : ''} automatiquement.</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">💡 Vous pouvez aussi utiliser <span className="font-mono bg-white dark:bg-gray-800 px-1 rounded border">{'{catalogue}'}</span> ou <span className="font-mono bg-white dark:bg-gray-800 px-1 rounded border">{`{catalogue:${step.catalogue_category || 'NomCat'}}`}</span> dans n'importe quel message.</p>
                         </div>
                       ) : step.type === 'handoff' ? (
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
-                          <p className="text-xs font-semibold text-amber-700">📞 Message envoyé au client avant transfert :</p>
+                        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 space-y-2">
+                          <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">📞 Message envoyé au client avant transfert :</p>
                           <textarea
                             value={step.message}
                             onChange={e => { const u = [...scenarioSteps]; u[idx] = { ...u[idx], message: e.target.value }; setScenarioSteps(u); }}
                             rows={2}
-                            className="w-full border border-amber-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 resize-none bg-white"
+                            className="w-full border border-amber-300 dark:border-amber-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 resize-none bg-white dark:bg-gray-800"
                             placeholder="Ex: Merci, un agent va vous contacter dans quelques instants. Merci de patienter."
                           />
-                          <p className="text-xs text-amber-600">⚠️ Ce step termine le scénario et passe la conversation en statut <strong>WAITING</strong> — les agents verront une alerte.</p>
+                          <p className="text-xs text-amber-600 dark:text-amber-400">⚠️ Ce step termine le scénario et passe la conversation en statut <strong>WAITING</strong> — les agents verront une alerte.</p>
                         </div>
                       ) : (
                         <textarea
                           value={step.message}
                           onChange={e => { const u = [...scenarioSteps]; u[idx] = { ...u[idx], message: e.target.value }; setScenarioSteps(u); }}
                           rows={2}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 resize-none bg-white"
+                          className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 resize-none bg-white dark:bg-gray-800"
                           placeholder={step.type === 'choice' ? 'Message affiché avec les choix (ex: Quel produit ?\n1 - Laptop\n2 - Souris)' : step.type === 'condition' ? 'Question posée au client (ex: Confirmez-vous ? oui/non)' : `Message de l'étape ${idx + 1}...`}
                         />
                       )}
                       {step.type !== 'catalogue' && step.type !== 'handoff' && (
-                        <p className="text-xs text-indigo-500 mt-1 flex flex-wrap gap-1 items-center">
+                        <p className="text-xs text-indigo-500 dark:text-indigo-300 mt-1 flex flex-wrap gap-1 items-center">
                           <span className="text-gray-400">Variables :</span>
-                          {idx > 0 && Array.from({length: idx}, (_, i) => <span key={i} className="font-mono bg-indigo-50 px-1 rounded">{`{step_${i + 1}_answer}`}</span>)}
-                          <span className="font-mono bg-indigo-50 px-1 rounded">{'{now}'}</span>
-                          <span className="font-mono bg-indigo-50 px-1 rounded">{'{date}'}</span>
-                          <span className="font-mono bg-indigo-50 px-1 rounded">{'{time}'}</span>
-                          <span className="font-mono bg-green-50 text-green-700 px-1 rounded">{'{catalogue}'}</span>
+                          {idx > 0 && Array.from({length: idx}, (_, i) => <span key={i} className="font-mono bg-indigo-50 dark:bg-indigo-900/30 px-1 rounded">{`{step_${i + 1}_answer}`}</span>)}
+                          <span className="font-mono bg-indigo-50 dark:bg-indigo-900/30 px-1 rounded">{'{now}'}</span>
+                          <span className="font-mono bg-indigo-50 dark:bg-indigo-900/30 px-1 rounded">{'{date}'}</span>
+                          <span className="font-mono bg-indigo-50 dark:bg-indigo-900/30 px-1 rounded">{'{time}'}</span>
+                          <span className="font-mono bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1 rounded">{'{catalogue}'}</span>
                           {categories.map(c => (
-                            <span key={c.id} className="font-mono bg-green-50 text-green-700 px-1 rounded">{`{catalogue:${c.name}}`}</span>
+                            <span key={c.id} className="font-mono bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1 rounded">{`{catalogue:${c.name}}`}</span>
                           ))}
-                          <span className="font-mono bg-green-50 text-green-700 px-1 rounded">{'{produit:NomProduit}'}</span>
+                          <span className="font-mono bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1 rounded">{'{produit:NomProduit}'}</span>
                         </p>
                       )}
 
@@ -997,11 +997,11 @@ export default function BotPage() {
                       {step.type === 'choice' && (
                         <div className="mt-2 space-y-1.5">
                           <div className="flex items-center gap-2">
-                            <label className="text-xs font-medium text-gray-600">Affichage :</label>
+                            <label className="text-xs font-medium text-gray-600 dark:text-gray-300">Affichage :</label>
                             <select
                               value={step.render}
                               onChange={e => { const u = [...scenarioSteps]; u[idx] = { ...u[idx], render: e.target.value as ChoiceRender }; setScenarioSteps(u); }}
-                              className="border border-gray-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-green-500"
+                              className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-green-500"
                             >
                               <option value="text">💬 Texte (le client tape sa réponse)</option>
                               <option value="buttons">🔘 Boutons cliquables (max 3)</option>
@@ -1012,18 +1012,18 @@ export default function BotPage() {
                             <input
                               value={step.list_button_label}
                               onChange={e => { const u = [...scenarioSteps]; u[idx] = { ...u[idx], list_button_label: e.target.value }; setScenarioSteps(u); }}
-                              className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-green-500"
+                              className="w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-green-500"
                               placeholder="Libellé du bouton d'ouverture (ex: Choisir, max 20 car.)"
                               maxLength={20}
                             />
                           )}
-                          <p className="text-xs font-medium text-gray-600">Réponses possibles :</p>
+                          <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Réponses possibles :</p>
                           {step.choices.map((c, ci) => (
                             <div key={ci} className="flex gap-2 items-center">
                               <input
                                 value={c.key}
                                 onChange={e => { const u = [...scenarioSteps]; u[idx].choices[ci] = { ...c, key: e.target.value }; setScenarioSteps(u); }}
-                                className="w-16 border border-gray-300 rounded px-2 py-1 text-xs font-mono focus:ring-1 focus:ring-green-500 uppercase"
+                                className="w-16 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs font-mono focus:ring-1 focus:ring-green-500 uppercase"
                                 placeholder="1"
                               />
                               <span className="text-gray-400 text-xs">→</span>
@@ -1031,7 +1031,7 @@ export default function BotPage() {
                                 <input
                                   value={c.label}
                                   onChange={e => { const u = [...scenarioSteps]; u[idx].choices[ci] = { ...c, label: e.target.value }; setScenarioSteps(u); }}
-                                  className="w-28 border border-gray-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-green-500"
+                                  className="w-28 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-green-500"
                                   placeholder={step.render === 'buttons' ? 'Titre bouton (≤20)' : 'Titre ligne (≤24)'}
                                   maxLength={step.render === 'buttons' ? 20 : 24}
                                 />
@@ -1039,35 +1039,35 @@ export default function BotPage() {
                               <input
                                 value={c.reply}
                                 onChange={e => { const u = [...scenarioSteps]; u[idx].choices[ci] = { ...c, reply: e.target.value }; setScenarioSteps(u); }}
-                                className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-green-500"
+                                className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-green-500"
                                 placeholder="Réponse ou confirmation..."
                               />
                               {step.choices.length > 1 && (
                                 <button type="button" onClick={() => { const u = [...scenarioSteps]; u[idx].choices = u[idx].choices.filter((_, i) => i !== ci); setScenarioSteps(u); }}
-                                  className="text-red-400 hover:text-red-600 text-xs">✕</button>
+                                  className="text-red-400 dark:text-red-300 hover:text-red-600 text-xs">✕</button>
                               )}
                             </div>
                           ))}
                           <button type="button"
                             onClick={() => { const u = [...scenarioSteps]; u[idx].choices = [...u[idx].choices, { key: '', reply: '', label: '' }]; setScenarioSteps(u); }}
-                            className="text-xs text-green-600 hover:text-green-800">+ Ajouter un choix</button>
+                            className="text-xs text-green-600 dark:text-green-400 hover:text-green-800">+ Ajouter un choix</button>
                           {step.render !== 'text' && step.choices.length > (step.render === 'buttons' ? 3 : 10) && (
-                            <p className="text-xs text-red-500">⚠️ WhatsApp limite à {step.render === 'buttons' ? '3 boutons' : '10 lignes'} maximum. Les choix en trop seront ignorés à l'envoi.</p>
+                            <p className="text-xs text-red-500 dark:text-red-300">⚠️ WhatsApp limite à {step.render === 'buttons' ? '3 boutons' : '10 lignes'} maximum. Les choix en trop seront ignorés à l'envoi.</p>
                           )}
-                          <p className="text-xs text-gray-400">Astuce : ajoutez un choix avec la clé <span className="font-mono bg-gray-100 px-1 rounded">DEFAULT</span> pour les réponses invalides (re-demande).</p>
+                          <p className="text-xs text-gray-400">Astuce : ajoutez un choix avec la clé <span className="font-mono bg-gray-100 dark:bg-gray-900 px-1 rounded">DEFAULT</span> pour les réponses invalides (re-demande).</p>
                         </div>
                       )}
 
                       {/* CONDITION rules */}
                       {step.type === 'condition' && (
                         <div className="mt-2 space-y-1.5">
-                          <p className="text-xs font-medium text-gray-600">Conditions :</p>
+                          <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Conditions :</p>
                           {step.conditions.map((c, ci) => (
                             <div key={ci} className="flex gap-2 items-center flex-wrap">
                               <select
                                 value={c.if}
                                 onChange={e => { const u = [...scenarioSteps]; u[idx].conditions[ci] = { ...c, if: e.target.value as any }; setScenarioSteps(u); }}
-                                className="border border-gray-300 rounded px-2 py-1 text-xs bg-white">
+                                className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs bg-white dark:bg-gray-800">
                                 <option value="equals">= égal à</option>
                                 <option value="contains">⊃ contient</option>
                                 <option value="starts_with">↗ commence par</option>
@@ -1078,7 +1078,7 @@ export default function BotPage() {
                                 <input
                                   value={c.value}
                                   onChange={e => { const u = [...scenarioSteps]; u[idx].conditions[ci] = { ...c, value: e.target.value }; setScenarioSteps(u); }}
-                                  className="w-24 border border-gray-300 rounded px-2 py-1 text-xs font-mono focus:ring-1 focus:ring-green-500"
+                                  className="w-24 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs font-mono focus:ring-1 focus:ring-green-500"
                                   placeholder="OUI"
                                 />
                               )}
@@ -1086,18 +1086,18 @@ export default function BotPage() {
                               <input
                                 value={c.reply}
                                 onChange={e => { const u = [...scenarioSteps]; u[idx].conditions[ci] = { ...c, reply: e.target.value }; setScenarioSteps(u); }}
-                                className="flex-1 min-w-32 border border-gray-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-green-500"
+                                className="flex-1 min-w-32 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-green-500"
                                 placeholder="Réponse..."
                               />
                               {step.conditions.length > 1 && (
                                 <button type="button" onClick={() => { const u = [...scenarioSteps]; u[idx].conditions = u[idx].conditions.filter((_, i) => i !== ci); setScenarioSteps(u); }}
-                                  className="text-red-400 hover:text-red-600 text-xs">✕</button>
+                                  className="text-red-400 dark:text-red-300 hover:text-red-600 text-xs">✕</button>
                               )}
                             </div>
                           ))}
                           <button type="button"
                             onClick={() => { const u = [...scenarioSteps]; u[idx].conditions = [...u[idx].conditions, { if: 'equals', value: '', reply: '' }]; setScenarioSteps(u); }}
-                            className="text-xs text-green-600 hover:text-green-800">+ Ajouter une condition</button>
+                            className="text-xs text-green-600 dark:text-green-400 hover:text-green-800">+ Ajouter une condition</button>
                         </div>
                       )}
 
@@ -1105,7 +1105,7 @@ export default function BotPage() {
                         <input
                           value={step.end_message}
                           onChange={e => { const u = [...scenarioSteps]; u[idx] = { ...u[idx], end_message: e.target.value }; setScenarioSteps(u); }}
-                          className="w-full border border-dashed border-gray-300 rounded-lg px-3 py-1.5 text-xs text-gray-500 focus:ring-1 focus:ring-green-400 bg-white"
+                          className="w-full border border-dashed border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 focus:ring-1 focus:ring-green-400 bg-white dark:bg-gray-800"
                           placeholder="Message de clôture optionnel (affiché si c'est la dernière étape)"
                         />
                       </div>
@@ -1119,18 +1119,18 @@ export default function BotPage() {
                 </div>
                 <button type="button"
                   onClick={() => setScenarioSteps([...scenarioSteps, { ...BLANK_STEP }])}
-                  className="mt-2 text-sm text-green-600 hover:text-green-800 font-medium flex items-center gap-1">
+                  className="mt-2 text-sm text-green-600 dark:text-green-400 hover:text-green-800 font-medium flex items-center gap-1">
                   + Ajouter une étape
                 </button>
               </div>
 
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="sc_active" checked={scenarioForm.is_active} onChange={e => setScenarioForm({...scenarioForm, is_active: e.target.checked})} className="rounded" />
-                <label htmlFor="sc_active" className="text-sm text-gray-700">Actif</label>
+                <label htmlFor="sc_active" className="text-sm text-gray-700 dark:text-gray-200">Actif</label>
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowScenarioModal(false)} className="flex-1 border border-gray-300 py-2 rounded-lg text-sm hover:bg-gray-50">Annuler</button>
+                <button type="button" onClick={() => setShowScenarioModal(false)} className="flex-1 border border-gray-300 dark:border-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700">Annuler</button>
                 <button type="submit" disabled={submitting} className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 disabled:opacity-50">{submitting ? '...' : editingScenario ? 'Enregistrer' : 'Créer'}</button>
               </div>
             </form>
@@ -1141,18 +1141,18 @@ export default function BotPage() {
       {/* ── Modal Mot-clé ── */}
       {showKeywordModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
-            <h3 className="font-bold text-gray-900 mb-4">{editingKeyword ? '✏️ Modifier le mot-clé' : '+ Nouveau mot-clé'}</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-xl">
+            <h3 className="font-bold text-gray-900 dark:text-white mb-4">{editingKeyword ? '✏️ Modifier le mot-clé' : '+ Nouveau mot-clé'}</h3>
             <form onSubmit={saveKeyword} className="space-y-3">
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Mot-clé *</label>
-                <input required value={keywordForm.keyword} onChange={e => setKeywordForm({...keywordForm, keyword: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" placeholder="Ex: horaires, prix, aide..." />
+              <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Mot-clé *</label>
+                <input required value={keywordForm.keyword} onChange={e => setKeywordForm({...keywordForm, keyword: e.target.value})} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" placeholder="Ex: horaires, prix, aide..." />
                 <p className="text-xs text-gray-400 mt-1">Insensible à la casse. Peut être un mot ou une courte phrase.</p></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Réponse *</label>
-                <textarea required value={keywordForm.response} onChange={e => setKeywordForm({...keywordForm, response: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" rows={4} placeholder="Réponse automatique envoyée au client..." /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Catégorie <span className="text-gray-400">(optionnel)</span></label>
-                <input value={keywordForm.category} onChange={e => setKeywordForm({...keywordForm, category: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Ex: FAQ, Support, Ventes..." /></div>
+              <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Réponse *</label>
+                <textarea required value={keywordForm.response} onChange={e => setKeywordForm({...keywordForm, response: e.target.value})} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" rows={4} placeholder="Réponse automatique envoyée au client..." /></div>
+              <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Catégorie <span className="text-gray-400">(optionnel)</span></label>
+                <input value={keywordForm.category} onChange={e => setKeywordForm({...keywordForm, category: e.target.value})} className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm" placeholder="Ex: FAQ, Support, Ventes..." /></div>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowKeywordModal(false)} className="flex-1 border border-gray-300 py-2 rounded-lg text-sm hover:bg-gray-50">Annuler</button>
+                <button type="button" onClick={() => setShowKeywordModal(false)} className="flex-1 border border-gray-300 dark:border-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700">Annuler</button>
                 <button type="submit" disabled={submitting} className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 disabled:opacity-50">{submitting ? '...' : editingKeyword ? 'Enregistrer' : 'Créer'}</button>
               </div>
             </form>

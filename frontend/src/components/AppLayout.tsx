@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../contexts/ThemeContext';
 import api from '../lib/api';
 
 const NAV_SUPER_ADMIN = [
@@ -34,6 +35,7 @@ const NAV_AGENT = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -69,7 +71,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     'Agent';
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
       {/* Sidebar */}
       <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-gray-900 text-white flex flex-col transition-all duration-200`}>
         {/* Logo */}
@@ -141,11 +143,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="bg-white shadow-sm px-6 py-3 flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-gray-800">
+        <header className="bg-white dark:bg-gray-800 shadow-sm dark:shadow-gray-900/20 px-6 py-3 flex items-center justify-between">
+          <h1 className="text-lg font-semibold text-gray-800 dark:text-white">
             WhatsApp SaaS Platform
           </h1>
-          <div className="flex items-center gap-3 text-sm text-gray-500">
+          <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-300">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              title={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
             <span>{user?.email}</span>
           </div>
         </header>

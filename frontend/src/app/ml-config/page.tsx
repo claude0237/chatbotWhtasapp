@@ -80,28 +80,28 @@ export default function MLConfigPage() {
   return (
     <AppLayout>
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Configuration ML</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Configuration ML</h1>
 
         {error && (
-          <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded-lg mb-4 flex justify-between text-sm">
+          <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-2 rounded-lg mb-4 flex justify-between text-sm">
             <span>{error}</span>
             <button onClick={() => setError('')}>✕</button>
           </div>
         )}
 
         {config && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Paramètres du Bot</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Paramètres du Bot</h2>
             
             {/* Bot Type */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                 Bot Type
               </label>
               <select
                 value={config.bot_type}
                 onChange={(e) => handleChange('bot_type', e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2"
               >
                 <option value="NATIVE">Native (with ML fallback)</option>
                 <option value="ML">ML Only</option>
@@ -117,23 +117,23 @@ export default function MLConfigPage() {
                   onChange={(e) => handleChange('ml_enabled', e.target.checked)}
                   className="mr-2"
                 />
-                <span className="text-sm font-medium text-gray-700">Enable ML</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Enable ML</span>
               </label>
             </div>
 
             {config.ml_enabled && (
               <>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 mt-6">ML Settings</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 mt-6">ML Settings</h3>
                 
                 {/* ML Provider */}
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     ML Provider
                   </label>
                   <select
                     value={config.ml_provider || ''}
                     onChange={(e) => handleChange('ml_provider', e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2"
                   >
                     <option value="">Select Provider</option>
                     {mlProviders.map((provider) => (
@@ -146,7 +146,7 @@ export default function MLConfigPage() {
 
                 {/* ML Model */}
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     Model Name
                   </label>
                   <input
@@ -154,13 +154,13 @@ export default function MLConfigPage() {
                     value={config.ml_model || ''}
                     onChange={(e) => handleChange('ml_model', e.target.value)}
                     placeholder="e.g., gpt-3.5-turbo, claude-3-sonnet"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2"
                   />
                 </div>
 
                 {/* Temperature */}
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     Temperature (0.0 - 1.0)
                   </label>
                   <input
@@ -170,13 +170,13 @@ export default function MLConfigPage() {
                     max="1"
                     value={config.ml_temperature || '0.7'}
                     onChange={(e) => handleChange('ml_temperature', e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2"
                   />
                 </div>
 
                 {/* Max Tokens */}
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     Max Tokens
                   </label>
                   <input
@@ -184,13 +184,13 @@ export default function MLConfigPage() {
                     min="1"
                     value={config.ml_max_tokens || 500}
                     onChange={(e) => handleChange('ml_max_tokens', parseInt(e.target.value))}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2"
                   />
                 </div>
 
                 {/* Confidence Threshold */}
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     Confidence Threshold (0.0 - 1.0)
                   </label>
                   <input
@@ -200,7 +200,7 @@ export default function MLConfigPage() {
                     max="1"
                     value={config.confidence_threshold || '0.5'}
                     onChange={(e) => handleChange('confidence_threshold', e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2"
                   />
                 </div>
               </>

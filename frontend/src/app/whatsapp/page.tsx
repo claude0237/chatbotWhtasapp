@@ -105,11 +105,11 @@ function SuperAdminWebhookPanel() {
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      active: 'bg-green-100 text-green-800',
-      inactive: 'bg-yellow-100 text-yellow-800',
-      dead: 'bg-red-100 text-red-800',
-      not_configured: 'bg-gray-100 text-gray-800',
-      no_messages: 'bg-gray-100 text-gray-800',
+      active: 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200',
+      inactive: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200',
+      dead: 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200',
+      not_configured: 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100',
+      no_messages: 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100',
     };
     const labels: Record<string, string> = {
       active: '✅ Actif',
@@ -127,10 +127,10 @@ function SuperAdminWebhookPanel() {
 
   const getApiStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      ok: 'bg-green-100 text-green-800',
-      error: 'bg-red-100 text-red-800',
-      timeout: 'bg-yellow-100 text-yellow-800',
-      unknown: 'bg-gray-100 text-gray-800',
+      ok: 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200',
+      error: 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200',
+      timeout: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200',
+      unknown: 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100',
     };
     const labels: Record<string, string> = {
       ok: '✅ OK',
@@ -200,32 +200,32 @@ function SuperAdminWebhookPanel() {
     : [];
 
   return (
-    <div className="max-w-7xl space-y-6 bg-white rounded-xl p-6">
+    <div className="max-w-7xl space-y-6 bg-white dark:bg-gray-800 rounded-xl p-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">📊 Dashboard WhatsApp Multi-Tenant</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">📊 Dashboard WhatsApp Multi-Tenant</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Monitoring et analytics pour toutes les entreprises
           </p>
         </div>
         <button 
           onClick={handleRefresh}
           disabled={refreshing}
-          className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+          className="flex items-center gap-2 bg-gray-100 dark:bg-gray-900 hover:bg-gray-200 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
         >
           {refreshing ? '⏳' : '🔄'} Rafraîchir
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('webhooks')}
             className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'webhooks'
-                ? 'border-green-500 text-green-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-green-500 text-green-600 dark:text-green-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
             }`}
           >
             📊 Webhooks
@@ -234,8 +234,8 @@ function SuperAdminWebhookPanel() {
             onClick={() => setActiveTab('performance')}
             className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'performance'
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
             }`}
           >
             📈 Performance
@@ -248,53 +248,53 @@ function SuperAdminWebhookPanel() {
         <>
           {/* KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Entreprises</p>
-              <p className="text-2xl font-bold text-gray-900">{webhookStats.length}</p>
-              <p className="text-xs text-green-600">{configuredCount} configurées</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Entreprises</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{webhookStats.length}</p>
+              <p className="text-xs text-green-600 dark:text-green-400">{configuredCount} configurées</p>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Webhooks Actifs</p>
-              <p className="text-2xl font-bold text-green-600">{activeCount}</p>
-              <p className="text-xs text-gray-500">Messages &lt; 5 min</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Webhooks Actifs</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{activeCount}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Messages &lt; 5 min</p>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Messages Entrants</p>
-              <p className="text-2xl font-bold text-blue-600">{totalIncoming}</p>
-              <p className="text-xs text-gray-500">24 dernières heures</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Messages Entrants</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalIncoming}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">24 dernières heures</p>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Messages Sortants</p>
-              <p className="text-2xl font-bold text-indigo-600">{totalOutgoing}</p>
-              <p className="text-xs text-gray-500">24 dernières heures</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Messages Sortants</p>
+              <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{totalOutgoing}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">24 dernières heures</p>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Échecs</p>
-              <p className="text-2xl font-bold text-red-600">{totalFailed}</p>
-              <p className="text-xs text-gray-500">24 dernières heures</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Échecs</p>
+              <p className="text-2xl font-bold text-red-600 dark:text-red-400">{totalFailed}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">24 dernières heures</p>
             </div>
           </div>
 
           {/* Stats Table */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-200 bg-gray-50">
-              <h2 className="font-semibold text-gray-900">État par Entreprise</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+              <h2 className="font-semibold text-gray-900 dark:text-white">État par Entreprise</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
                     {['Entreprise', 'État Webhook', 'API Meta', 'Messages (24h)', 'Dernier Réception', 'URL Webhook'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100">
                   {webhookStats.map(stat => (
-                    <tr key={stat.company_id} className="hover:bg-gray-50">
+                    <tr key={stat.company_id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-4 py-4">
-                        <p className="text-sm font-medium text-gray-900">{stat.company_name}</p>
-                        <p className="text-xs text-gray-500 font-mono">{stat.company_id.slice(0, 8)}...</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{stat.company_name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{stat.company_id.slice(0, 8)}...</p>
                       </td>
                       <td className="px-4 py-4">
                         {getStatusBadge(stat.status)}
@@ -304,19 +304,19 @@ function SuperAdminWebhookPanel() {
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex gap-2 text-xs">
-                          <span className="bg-blue-50 text-blue-700 px- py-1 rounded">↘️ {stat.messages_incoming_24h}</span>
-                          <span className="bg-indigo-50 text-indigo-700 px- py-1 rounded">↗️ {stat.messages_outgoing_24h}</span>
+                          <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px- py-1 rounded">↘️ {stat.messages_incoming_24h}</span>
+                          <span className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px- py-1 rounded">↗️ {stat.messages_outgoing_24h}</span>
                           {stat.messages_failed_24h > 0 && (
-                            <span className="bg-red-50 text-red-700 px- py-1 rounded">❌ {stat.messages_failed_24h}</span>
+                            <span className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 px- py-1 rounded">❌ {stat.messages_failed_24h}</span>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-xs text-gray-600">
+                      <td className="px-4 py-4 text-xs text-gray-600 dark:text-gray-300">
                         {formatTimeAgo(stat.last_message_received)}
                       </td>
                       <td className="px-4 py-4">
                         {stat.webhook_url ? (
-                          <code className="text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                          <code className="text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded">
                             {stat.webhook_url.slice(0, 40)}...
                           </code>
                         ) : (
@@ -331,28 +331,28 @@ function SuperAdminWebhookPanel() {
           </div>
 
           {/* Legend */}
-          <div className="bg-gray-50 rounded-xl border border-gray-200 p-4">
-            <h3 className="font-semibold text-gray-900 text-sm mb-3">Légende des États</h3>
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+            <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-3">Légende des États</h3>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-xs">
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-green-500"></span>
-                <span className="text-gray-600"><strong>Actif:</strong> Messages &lt; 5 min</span>
+                <span className="text-gray-600 dark:text-gray-300"><strong>Actif:</strong> Messages &lt; 5 min</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
-                <span className="text-gray-600"><strong>Inactif:</strong> 5-30 min</span>
+                <span className="text-gray-600 dark:text-gray-300"><strong>Inactif:</strong> 5-30 min</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-red-500"></span>
-                <span className="text-gray-600"><strong>Mort:</strong> &gt; 30 min</span>
+                <span className="text-gray-600 dark:text-gray-300"><strong>Mort:</strong> &gt; 30 min</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-gray-400"></span>
-                <span className="text-gray-600"><strong>Aucun message:</strong> Jamais reçu</span>
+                <span className="text-gray-600 dark:text-gray-300"><strong>Aucun message:</strong> Jamais reçu</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-gray-300"></span>
-                <span className="text-gray-600"><strong>Non configuré:</strong> Pas de channel</span>
+                <span className="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+                <span className="text-gray-600 dark:text-gray-300"><strong>Non configuré:</strong> Pas de channel</span>
               </div>
             </div>
           </div>
@@ -364,7 +364,7 @@ function SuperAdminWebhookPanel() {
         <>
           {/* Period Selector */}
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">Période :</span>
+            <span className="text-sm text-gray-600 dark:text-gray-300">Période :</span>
             <div className="flex gap-2">
               {[7, 30, 90].map(d => (
                 <button
@@ -373,7 +373,7 @@ function SuperAdminWebhookPanel() {
                   className={`px-3 py-1 rounded-lg text-sm font-medium ${
                     daysPeriod === d
                       ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      : 'bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-200 hover:bg-gray-200'
                   }`}
                 >
                   {d}j
@@ -384,95 +384,95 @@ function SuperAdminWebhookPanel() {
 
           {/* KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Messages Entrants</p>
-              <p className="text-2xl font-bold text-blue-600">{totalPerfIncoming}</p>
-              <p className="text-xs text-gray-500">Derniers {daysPeriod} jours</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Messages Entrants</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalPerfIncoming}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Derniers {daysPeriod} jours</p>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Messages Sortants</p>
-              <p className="text-2xl font-bold text-indigo-600">{totalPerfOutgoing}</p>
-              <p className="text-xs text-gray-500">Derniers {daysPeriod} jours</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Messages Sortants</p>
+              <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{totalPerfOutgoing}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Derniers {daysPeriod} jours</p>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Échecs</p>
-              <p className="text-2xl font-bold text-red-600">{totalPerfFailed}</p>
-              <p className="text-xs text-gray-500">Derniers {daysPeriod} jours</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Échecs</p>
+              <p className="text-2xl font-bold text-red-600 dark:text-red-400">{totalPerfFailed}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Derniers {daysPeriod} jours</p>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Contacts Totaux</p>
-              <p className="text-2xl font-bold text-purple-600">{totalContacts}</p>
-              <p className="text-xs text-gray-500">Base de contacts</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Contacts Totaux</p>
+              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{totalContacts}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Base de contacts</p>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Nouveaux Contacts</p>
-              <p className="text-2xl font-bold text-green-600">{totalNewContacts}</p>
-              <p className="text-xs text-gray-500">Derniers {daysPeriod} jours</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Nouveaux Contacts</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{totalNewContacts}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Derniers {daysPeriod} jours</p>
             </div>
           </div>
 
           {/* Secondary KPIs */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Taux de Succès</p>
-              <p className="text-2xl font-bold text-green-600">{avgSuccessRate.toFixed(1)}%</p>
-              <p className="text-xs text-gray-500">Moyenne global</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Taux de Succès</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{avgSuccessRate.toFixed(1)}%</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Moyenne global</p>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Entreprises</p>
-              <p className="text-2xl font-bold text-gray-900">{performanceStats.length}</p>
-              <p className="text-xs text-gray-500">Avec données</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Entreprises</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{performanceStats.length}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Avec données</p>
             </div>
           </div>
 
           {/* Performance Table */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-200 bg-gray-50">
-              <h2 className="font-semibold text-gray-900">Performance par Entreprise</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+              <h2 className="font-semibold text-gray-900 dark:text-white">Performance par Entreprise</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
                     {['Entreprise', 'Entrants', 'Sortants', 'Échecs', 'Taux Succès', 'Contacts Totaux', 'Nouveaux Contacts', 'Temps Réponse Moy'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100">
                   {performanceStats.map(stat => (
-                    <tr key={stat.company_id} className="hover:bg-gray-50">
+                    <tr key={stat.company_id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-4 py-4">
-                        <p className="text-sm font-medium text-gray-900">{stat.company_name}</p>
-                        <p className="text-xs text-gray-500 font-mono">{stat.company_id.slice(0, 8)}...</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{stat.company_name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{stat.company_id.slice(0, 8)}...</p>
                       </td>
                       <td className="px-4 py-4">
-                        <span className="text-sm font-semibold text-blue-600">{stat.total_messages_incoming}</span>
+                        <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">{stat.total_messages_incoming}</span>
                       </td>
                       <td className="px-4 py-4">
-                        <span className="text-sm font-semibold text-indigo-600">{stat.total_messages_outgoing}</span>
+                        <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">{stat.total_messages_outgoing}</span>
                       </td>
                       <td className="px-4 py-4">
-                        <span className={`text-sm font-semibold ${stat.total_messages_failed > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        <span className={`text-sm font-semibold ${stat.total_messages_failed > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                           {stat.total_messages_failed}
                         </span>
                       </td>
                       <td className="px-4 py-4">
-                        <span className={`text-sm font-semibold ${stat.success_rate >= 95 ? 'text-green-600' : stat.success_rate >= 80 ? 'text-yellow-600' : 'text-red-600'}`}>
+                        <span className={`text-sm font-semibold ${stat.success_rate >= 95 ? 'text-green-600 dark:text-green-400' : stat.success_rate >= 80 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
                           {stat.success_rate.toFixed(1)}%
                         </span>
                       </td>
                       <td className="px-4 py-4">
-                        <span className="text-sm font-semibold text-purple-600">{stat.total_contacts}</span>
+                        <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">{stat.total_contacts}</span>
                       </td>
                       <td className="px-4 py-4">
-                        <span className={`text-sm font-semibold ${stat.new_contacts_period > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                        <span className={`text-sm font-semibold ${stat.new_contacts_period > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
                           +{stat.new_contacts_period}
                         </span>
                       </td>
                       <td className="px-4 py-4">
                         {stat.avg_response_time_seconds ? (
-                          <span className="text-sm text-gray-600">{stat.avg_response_time_seconds.toFixed(1)}s</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-300">{stat.avg_response_time_seconds.toFixed(1)}s</span>
                         ) : (
                           <span className="text-sm text-gray-400">—</span>
                         )}
@@ -485,8 +485,8 @@ function SuperAdminWebhookPanel() {
           </div>
 
           {/* Daily Trend Chart */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h2 className="font-semibold text-gray-900 mb-4">📈 Évolution Quotidienne</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+            <h2 className="font-semibold text-gray-900 dark:text-white mb-4">📈 Évolution Quotidienne</h2>
             
             {/* Chart Type Toggle */}
             <div className="flex gap-2 mb-4">
@@ -495,7 +495,7 @@ function SuperAdminWebhookPanel() {
                 className={`px-3 py-1 rounded-lg text-sm font-medium ${
                   chartType === 'line'
                     ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-200 hover:bg-gray-200'
                 }`}
               >
                 Ligne
@@ -505,7 +505,7 @@ function SuperAdminWebhookPanel() {
                 className={`px-3 py-1 rounded-lg text-sm font-medium ${
                   chartType === 'bar'
                     ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-200 hover:bg-gray-200'
                 }`}
               >
                 Barres
@@ -747,7 +747,7 @@ export default function WhatsAppPage() {
     <AppLayout>
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">📱 WhatsApp</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">📱 WhatsApp</h1>
           {credentials?.configured && (
             <button onClick={() => setShowSendModal(true)}
               className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-medium">
@@ -756,16 +756,16 @@ export default function WhatsAppPage() {
           )}
         </div>
 
-        {error && <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded-lg mb-4 flex justify-between text-sm"><span>{error}</span><button onClick={() => setError('')}>✕</button></div>}
-        {success && <div className="bg-green-50 border border-green-300 text-green-700 px-4 py-2 rounded-lg mb-4 flex justify-between text-sm"><span>✅ {success}</span><button onClick={() => setSuccess('')}>✕</button></div>}
+        {error && <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-2 rounded-lg mb-4 flex justify-between text-sm"><span>{error}</span><button onClick={() => setError('')}>✕</button></div>}
+        {success && <div className="bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 px-4 py-2 rounded-lg mb-4 flex justify-between text-sm"><span>✅ {success}</span><button onClick={() => setSuccess('')}>✕</button></div>}
 
         {/* Tabs */}
-        <div className="border-b border-gray-200 mb-6">
+        <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
           <nav className="-mb-px flex space-x-8">
             {TABS.map(tab => (
               <button key={tab.key} onClick={() => setActiveTab(tab.key as any)}
                 className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.key ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                  activeTab === tab.key ? 'border-green-500 text-green-600 dark:text-green-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
                 }`}>
                 {tab.label}
               </button>
@@ -779,87 +779,87 @@ export default function WhatsAppPage() {
 
             {/* Statut connexion actuelle */}
             {credentials?.configured && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
+              <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl p-4 flex items-start gap-3">
                 <span className="text-2xl">✅</span>
                 <div className="flex-1">
-                  <p className="font-semibold text-green-800 text-sm">WhatsApp configuré</p>
-                  <p className="text-xs text-green-700 mt-0.5">Numéro : <span className="font-mono">{credentials.display_phone_number || '—'}</span></p>
-                  <p className="text-xs text-green-700">Phone Number ID : <span className="font-mono">{credentials.phone_number_id}</span></p>
-                  <p className="text-xs text-green-700">Meta App ID : <span className="font-mono">{credentials.meta_app_id || '—'}</span></p>
-                  <p className="text-xs text-green-700">Meta Business ID : <span className="font-mono">{credentials.meta_business_id || '—'}</span></p>
-                  <p className="text-xs text-green-700">Token : <span className="font-mono">{credentials.access_token_masked}</span></p>
+                  <p className="font-semibold text-green-800 dark:text-green-200 text-sm">WhatsApp configuré</p>
+                  <p className="text-xs text-green-700 dark:text-green-300 mt-0.5">Numéro : <span className="font-mono">{credentials.display_phone_number || '—'}</span></p>
+                  <p className="text-xs text-green-700 dark:text-green-300">Phone Number ID : <span className="font-mono">{credentials.phone_number_id}</span></p>
+                  <p className="text-xs text-green-700 dark:text-green-300">Meta App ID : <span className="font-mono">{credentials.meta_app_id || '—'}</span></p>
+                  <p className="text-xs text-green-700 dark:text-green-300">Meta Business ID : <span className="font-mono">{credentials.meta_business_id || '—'}</span></p>
+                  <p className="text-xs text-green-700 dark:text-green-300">Token : <span className="font-mono">{credentials.access_token_masked}</span></p>
                   {credentials.webhook_url && (
-                    <p className="text-xs text-green-700 mt-2">Webhook URL : <span className="font-mono text-xs">{credentials.webhook_url}</span></p>
+                    <p className="text-xs text-green-700 dark:text-green-300 mt-2">Webhook URL : <span className="font-mono text-xs">{credentials.webhook_url}</span></p>
                   )}
                 </div>
               </div>
             )}
 
             {/* ── Configuration manuelle (Multi-tenant) ── */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-base font-semibold text-gray-900 mb-1">✏️ Configuration manuelle (Multi-tenant)</h2>
-              <p className="text-xs text-gray-500 mb-5">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-1">✏️ Configuration manuelle (Multi-tenant)</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-5">
                 Configurez vos propres identifiants Meta pour votre entreprise. Chaque tenant a sa propre configuration.
               </p>
               <form onSubmit={saveCredentials} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Meta App ID <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Meta App ID <span className="text-red-500 dark:text-red-300">*</span></label>
                     <input value={credForm.meta_app_id}
                       onChange={e => setCredForm({...credForm, meta_app_id: e.target.value})}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-green-500"
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-green-500"
                       placeholder="1512138164296574" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Meta Business ID <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Meta Business ID <span className="text-red-500 dark:text-red-300">*</span></label>
                     <input value={credForm.meta_business_id}
                       onChange={e => setCredForm({...credForm, meta_business_id: e.target.value})}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-green-500"
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-green-500"
                       placeholder="232803093077664" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Meta App Secret <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Meta App Secret <span className="text-red-500 dark:text-red-300">*</span></label>
                   <input type="password" value={credForm.meta_app_secret}
                     onChange={e => setCredForm({...credForm, meta_app_secret: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-green-500"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-green-500"
                     placeholder="22bc8b15890777fc545593241396fb46" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number ID <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Phone Number ID <span className="text-red-500 dark:text-red-300">*</span></label>
                   <input required value={credForm.phone_number_id}
                     onChange={e => setCredForm({...credForm, phone_number_id: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-green-500"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-green-500"
                     placeholder="122970883552303" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Access Token (Permanent) <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Access Token (Permanent) <span className="text-red-500 dark:text-red-300">*</span></label>
                   <input required type="password" value={credForm.access_token}
                     onChange={e => setCredForm({...credForm, access_token: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-green-500"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-green-500"
                     placeholder="EAAxxxxxxxxx..." />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">WABA ID <span className="text-gray-400 font-normal">(optionnel)</span></label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">WABA ID <span className="text-gray-400 font-normal">(optionnel)</span></label>
                   <input value={credForm.waba_id}
                     onChange={e => setCredForm({...credForm, waba_id: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-mono"
                     placeholder="851253647787120" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Numéro affiché <span className="text-gray-400 font-normal">(optionnel)</span></label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Numéro affiché <span className="text-gray-400 font-normal">(optionnel)</span></label>
                   <input value={credForm.display_phone_number}
                     onChange={e => setCredForm({...credForm, display_phone_number: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm"
                     placeholder="+237 6 12 34 56 78" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Webhook Verify Token <span className="text-gray-400 font-normal">(optionnel)</span></label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Webhook Verify Token <span className="text-gray-400 font-normal">(optionnel)</span></label>
                   <input value={credForm.webhook_verify_token}
                     onChange={e => setCredForm({...credForm, webhook_verify_token: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-mono"
                     placeholder="verify_token_123" />
-                  <p className="text-xs text-gray-500 mt-1">Token pour valider le webhook sur Meta</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Token pour valider le webhook sur Meta</p>
                 </div>
                 <button type="submit" disabled={submitting}
                   className="w-full bg-green-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50">
@@ -872,13 +872,13 @@ export default function WhatsAppPage() {
 
         {/* Messages Tab */}
         {activeTab === 'messages' && (
-          <div className="bg-white shadow rounded-xl overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 shadow rounded-xl overflow-hidden">
             {selectedIds.size > 0 && (
-              <div className="bg-red-50 border-b border-red-200 px-5 py-3 flex items-center justify-between">
-                <span className="text-sm text-red-700 font-medium">{selectedIds.size} message(s) sélectionné(s)</span>
+              <div className="bg-red-50 dark:bg-red-900/30 border-b border-red-200 dark:border-red-800 px-5 py-3 flex items-center justify-between">
+                <span className="text-sm text-red-700 dark:text-red-300 font-medium">{selectedIds.size} message(s) sélectionné(s)</span>
                 <div className="flex gap-2">
                   <button onClick={() => setSelectedIds(new Set())}
-                    className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800">Annuler</button>
+                    className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800">Annuler</button>
                   <button onClick={handleDeleteSelected} disabled={deleting}
                     className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">
                     {deleting ? 'Suppression...' : '🗑️ Supprimer'}
@@ -887,52 +887,52 @@ export default function WhatsAppPage() {
               </div>
             )}
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
                   <th className="px-5 py-3 w-10">
                     <input type="checkbox"
                       checked={messages.length > 0 && selectedIds.size === messages.length}
                       onChange={toggleSelectAllMessages}
-                      className="rounded border-gray-300" />
+                      className="rounded border-gray-300 dark:border-gray-600" />
                   </th>
                   {['Téléphone', 'Direction', 'Contenu', 'Statut', 'Date'].map(h => (
-                    <th key={h} className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                    <th key={h} className="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100">
                 {messages.map(msg => (
-                  <tr key={msg.id} className={`hover:bg-gray-50 cursor-pointer ${selectedIds.has(msg.id) ? 'bg-green-50' : ''}`}
+                  <tr key={msg.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${selectedIds.has(msg.id) ? 'bg-green-50 dark:bg-green-900/30' : ''}`}
                     onClick={() => setConversationPhone(msg.phone_number)}>
                     <td className="px-5 py-4" onClick={e => e.stopPropagation()}>
                       <input type="checkbox" checked={selectedIds.has(msg.id)}
                         onChange={() => toggleSelectMessage(msg.id)}
-                        className="rounded border-gray-300" />
+                        className="rounded border-gray-300 dark:border-gray-600" />
                     </td>
                     <td className="px-5 py-4">
-                      <p className="text-sm font-medium text-gray-900">{msg.phone_number}</p>
-                      {msg.display_name && <p className="text-xs text-gray-500">{msg.display_name}</p>}
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{msg.phone_number}</p>
+                      {msg.display_name && <p className="text-xs text-gray-500 dark:text-gray-400">{msg.display_name}</p>}
                     </td>
                     <td className="px-5 py-4">
                       <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                        msg.direction === 'OUTGOING' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                        msg.direction === 'OUTGOING' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
                       }`}>
                         {msg.direction === 'OUTGOING' ? '↗️ Sortant' : '↘️ Entrant'}
                       </span>
                     </td>
                     <td className="px-5 py-4 max-w-xs">
                       {msg.message_type === 'INTERACTIVE' && (
-                        <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded mr-1">🔘 Interactif</span>
+                        <span className="text-[10px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/30 px-1.5 py-0.5 rounded mr-1">🔘 Interactif</span>
                       )}
-                      <p className="text-sm text-gray-700 truncate">{msg.content || '(média)'}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-200 truncate">{msg.content || '(média)'}</p>
                     </td>
                     <td className="px-5 py-4">
                       <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                        msg.status === 'DELIVERED' || msg.status === 'READ' ? 'bg-green-100 text-green-700' :
-                        msg.status === 'FAILED' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+                        msg.status === 'DELIVERED' || msg.status === 'READ' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' :
+                        msg.status === 'FAILED' ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300' : 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300'
                       }`}>{msg.status}</span>
                     </td>
-                    <td className="px-5 py-4 text-xs text-gray-500">
+                    <td className="px-5 py-4 text-xs text-gray-500 dark:text-gray-400">
                       {new Date(msg.created_at).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}
                     </td>
                   </tr>
@@ -947,24 +947,24 @@ export default function WhatsAppPage() {
 
         {/* Templates Tab */}
         {activeTab === 'templates' && (
-          <div className="bg-white shadow rounded-xl overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 shadow rounded-xl overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
                   {['Nom', 'Catégorie', 'Langue', 'Statut'].map(h => (
-                    <th key={h} className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                    <th key={h} className="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100">
                 {templates.map(t => (
-                  <tr key={t.id} className="hover:bg-gray-50">
-                    <td className="px-5 py-4 text-sm font-medium text-gray-900">{t.name}</td>
-                    <td className="px-5 py-4 text-sm text-gray-500">{t.category}</td>
-                    <td className="px-5 py-4 text-sm text-gray-500">{t.language}</td>
+                  <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-5 py-4 text-sm font-medium text-gray-900 dark:text-white">{t.name}</td>
+                    <td className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">{t.category}</td>
+                    <td className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">{t.language}</td>
                     <td className="px-5 py-4">
                       <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                        t.is_approved ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                        t.is_approved ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' : 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300'
                       }`}>{t.is_approved ? '✅ Approuvé' : '⏳ En attente'}</span>
                     </td>
                   </tr>
@@ -981,26 +981,26 @@ export default function WhatsAppPage() {
       {/* Modal Envoi */}
       {showSendModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
-            <h3 className="font-bold text-gray-900 mb-4">📱 Envoyer un message WhatsApp</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-xl">
+            <h3 className="font-bold text-gray-900 dark:text-white mb-4">📱 Envoyer un message WhatsApp</h3>
             <form onSubmit={handleSendMessage} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de téléphone *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Numéro de téléphone *</label>
                 <input required type="tel" value={sendForm.phone_number}
                   onChange={e => setSendForm({...sendForm, phone_number: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
                   placeholder="+33612345678" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Message *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Message *</label>
                 <textarea required value={sendForm.content}
                   onChange={e => setSendForm({...sendForm, content: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
                   rows={4} placeholder="Votre message..." />
               </div>
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => setShowSendModal(false)}
-                  className="flex-1 border border-gray-300 py-2 rounded-lg text-sm hover:bg-gray-50">Annuler</button>
+                  className="flex-1 border border-gray-300 dark:border-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700">Annuler</button>
                 <button type="submit" disabled={submitting}
                   className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 disabled:opacity-50">
                   {submitting ? 'Envoi...' : 'Envoyer'}
@@ -1050,30 +1050,30 @@ function ConversationModal({ phoneNumber, onClose }: { phoneNumber: string; onCl
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl w-full max-w-lg shadow-xl flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-lg shadow-xl flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
           <div>
-            <h3 className="font-bold text-gray-900">💬 Conversation</h3>
-            <p className="text-xs text-gray-500 font-mono">{phoneNumber}</p>
+            <h3 className="font-bold text-gray-900 dark:text-white">💬 Conversation</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{phoneNumber}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
         </div>
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 bg-gray-50">
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 bg-gray-50 dark:bg-gray-800">
           {loading && <div className="text-center text-gray-400 text-sm py-8">Chargement...</div>}
-          {error && <div className="text-center text-red-500 text-sm py-8">{error}</div>}
+          {error && <div className="text-center text-red-500 dark:text-red-300 text-sm py-8">{error}</div>}
           {!loading && !error && convMessages.length === 0 && (
             <div className="text-center text-gray-400 text-sm py-8">Aucun message</div>
           )}
           {!loading && !error && convMessages.map(msg => (
             <div key={msg.id} className={`flex ${msg.direction === 'OUTGOING' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
-                msg.direction === 'OUTGOING' ? 'bg-green-600 text-white' : 'bg-white border border-gray-200 text-gray-800'
+                msg.direction === 'OUTGOING' ? 'bg-green-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100'
               }`}>
                 <p className="whitespace-pre-wrap break-words">{msg.content || '(média)'}</p>
                 {msg.message_type === 'INTERACTIVE' && msg.direction === 'OUTGOING' && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {(msg.extra_data?.buttons || msg.extra_data?.rows || []).map((opt: any, i: number) => (
-                      <span key={i} className="text-[11px] bg-white/20 border border-white/40 rounded-full px-2 py-0.5">
+                      <span key={i} className="text-[11px] bg-white/20 dark:bg-gray-800/20 border border-white/40 rounded-full px-2 py-0.5">
                         {opt.title}
                       </span>
                     ))}

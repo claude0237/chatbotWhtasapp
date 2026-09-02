@@ -19,9 +19,9 @@ interface Message {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  OPEN: 'bg-green-100 text-green-700', WAITING: 'bg-amber-100 text-amber-700',
-  AI: 'bg-purple-100 text-purple-700', AGENT: 'bg-blue-100 text-blue-700',
-  CLOSED: 'bg-gray-100 text-gray-500', ARCHIVED: 'bg-red-100 text-red-600',
+  OPEN: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300', WAITING: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300',
+  AI: 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300', AGENT: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300',
+  CLOSED: 'bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400', ARCHIVED: 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400',
 };
 const PRIORITY_DOT: Record<string, string> = {
   LOW: 'bg-gray-400', MEDIUM: 'bg-blue-400', HIGH: 'bg-orange-400', URGENT: 'bg-red-500',
@@ -293,12 +293,12 @@ export default function ConversationsPage() {
 
         {/* ── Header ── */}
         <div className="flex items-center gap-3 mb-3 flex-wrap">
-          <h1 className="text-xl font-bold text-gray-900 mr-auto">💬 Conversations</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white mr-auto">💬 Conversations</h1>
           <input value={searchQ} onChange={e => setSearchQ(e.target.value)}
             placeholder="🔍 Rechercher client, téléphone..."
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-56 focus:ring-2 focus:ring-green-500" />
+            className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm w-56 focus:ring-2 focus:ring-green-500" />
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-green-500">
+            className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-green-500">
             <option value="">Tous les statuts</option>
             {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
@@ -311,7 +311,7 @@ export default function ConversationsPage() {
         </div>
         {autoAssignMsg && (
           <div className={`text-sm px-4 py-2 rounded-lg mb-3 flex justify-between items-center ${
-            autoAssignMsg.startsWith('✅') ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-gray-50 text-gray-600 border border-gray-200'
+            autoAssignMsg.startsWith('✅') ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800' : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700'
           }`}>
             <span>{autoAssignMsg}</span>
             <button onClick={() => setAutoAssignMsg('')} className="ml-2 opacity-60 hover:opacity-100">✕</button>
@@ -319,13 +319,13 @@ export default function ConversationsPage() {
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded-lg mb-3 flex justify-between text-sm">
+          <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-2 rounded-lg mb-3 flex justify-between text-sm">
             <span>{error}</span><button onClick={() => setError('')}>✕</button>
           </div>
         )}
 
         {waitingCount > 0 && (
-          <div className="animate-pulse bg-amber-50 border border-amber-400 text-amber-800 px-4 py-2.5 rounded-lg mb-3 flex items-center justify-between text-sm font-medium">
+          <div className="animate-pulse bg-amber-50 dark:bg-amber-900/30 border border-amber-400 dark:border-amber-600 text-amber-800 dark:text-amber-200 px-4 py-2.5 rounded-lg mb-3 flex items-center justify-between text-sm font-medium">
             <span>🔔 <strong>{waitingCount} conversation{waitingCount > 1 ? 's' : ''}</strong> en attente d’intervention humaine (transfert bot)</span>
             <button onClick={() => setStatusFilter('WAITING')} className="text-xs bg-amber-400 text-white px-2.5 py-1 rounded-lg hover:bg-amber-500 ml-3 whitespace-nowrap">Voir</button>
           </div>
@@ -334,8 +334,8 @@ export default function ConversationsPage() {
         <div className="flex gap-3 flex-1 min-h-0">
 
           {/* ── Liste ── */}
-          <div className="w-72 flex-shrink-0 bg-white rounded-xl shadow flex flex-col overflow-hidden">
-            <div className="px-4 py-2.5 bg-gray-50 border-b text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          <div className="w-72 flex-shrink-0 bg-white dark:bg-gray-800 rounded-xl shadow flex flex-col overflow-hidden">
+            <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border-b text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
               {filtered.length} conversation{filtered.length !== 1 ? 's' : ''}
             </div>
             <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
@@ -350,18 +350,18 @@ export default function ConversationsPage() {
                 return (
                   <div key={c.id} onClick={() => setSelected(c)}
                     className={`px-3 py-3 cursor-pointer hover:bg-gray-50:bg-gray-700 transition-colors relative ${
-                      isSelected ? 'bg-green-50 border-l-4 border-green-500' :
-                      c.status === 'WAITING' ? 'border-l-4 border-amber-400 bg-amber-50/40' :
+                      isSelected ? 'bg-green-50 dark:bg-green-900/30 border-l-4 border-green-500' :
+                      c.status === 'WAITING' ? 'border-l-4 border-amber-400 dark:border-amber-600 bg-amber-50/40 dark:bg-amber-900/40' :
                       'border-l-4 border-transparent'
                     }`}>
                     <div className="flex items-start justify-between gap-1 mb-0.5">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${PRIORITY_DOT[c.priority] || 'bg-gray-400'}`} title={c.priority} />
-                        <span className="text-sm font-semibold text-gray-900 truncate">
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                           {clientLabel(cust)}
                         </span>
                       </div>
-                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 ${STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-600'}`}>
+                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 ${STATUS_COLORS[c.status] || 'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300'}`}>
                         {c.status === 'WAITING' ? '🔔 WAITING' : c.status}
                       </span>
                     </div>
@@ -373,13 +373,13 @@ export default function ConversationsPage() {
                         {new Date(c.last_activity_at).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}
                       </span>
                       {isUnassigned && (
-                        <span className="text-xs text-amber-600 font-medium">Non assigné</span>
+                        <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">Non assigné</span>
                       )}
                     </div>
                     {c.tags && c.tags.length > 0 && (
                       <div className="flex gap-1 mt-1 ml-3.5 flex-wrap">
                         {c.tags.map((t, i) => (
-                          <span key={i} className="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded">{t}</span>
+                          <span key={i} className="text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded">{t}</span>
                         ))}
                       </div>
                     )}
@@ -393,20 +393,20 @@ export default function ConversationsPage() {
           <div className="flex-1 flex gap-3 min-w-0 min-h-0">
 
             {/* Chat */}
-            <div className="flex-1 bg-white rounded-xl shadow flex flex-col overflow-hidden min-w-0 min-h-0">
+            <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl shadow flex flex-col overflow-hidden min-w-0 min-h-0">
               {selected ? (
                 <>
                   {/* Header chat */}
-                  <div className="px-4 py-3 bg-gray-50 border-b flex items-center justify-between gap-2">
+                  <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 flex items-center justify-center font-bold text-sm flex-shrink-0">
                         {clientLabel(customers[selected.customer_id]).charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-gray-900 text-sm truncate">{clientLabel(customers[selected.customer_id])}</p>
+                        <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">{clientLabel(customers[selected.customer_id])}</p>
                         <div className="flex items-center gap-1.5">
                           <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${STATUS_COLORS[selected.status]}`}>{selected.status}</span>
-                          <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${PRIORITY_DOT[selected.priority].replace('bg-', 'bg-').replace('-400','-100').replace('-500','-100')} text-gray-600`}>{selected.priority}</span>
+                          <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${PRIORITY_DOT[selected.priority].replace('bg-', 'bg-').replace('-400','-100').replace('-500','-100')} text-gray-600 dark:text-gray-300`}>{selected.priority}</span>
                           {assignedAgent && <span className="text-xs text-gray-400">→ {assignedAgent.first_name} {assignedAgent.last_name}</span>}
                         </div>
                       </div>
@@ -414,25 +414,25 @@ export default function ConversationsPage() {
                     <div className="flex gap-1.5 flex-shrink-0 flex-wrap justify-end">
                       {!isMine && (
                         <button onClick={handleTake}
-                          className="text-xs bg-green-100 text-green-700 px-2.5 py-1.5 rounded-lg hover:bg-green-200 font-semibold">
+                          className="text-xs bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2.5 py-1.5 rounded-lg hover:bg-green-200 dark:hover:bg-green-800 font-semibold">
                           ✋ Prendre
                         </button>
                       )}
                       <button onClick={() => { setModalStatus(selected.status); setShowStatusModal(true); }}
-                        className="text-xs bg-amber-100 text-amber-700 px-2.5 py-1.5 rounded-lg hover:bg-amber-200 font-medium">Statut</button>
+                        className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2.5 py-1.5 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-800 font-medium">Statut</button>
                       <button onClick={() => setShowAssignModal(true)}
-                        className="text-xs bg-blue-100 text-blue-700 px-2.5 py-1.5 rounded-lg hover:bg-blue-200 font-medium">Assigner</button>
+                        className="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2.5 py-1.5 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800 font-medium">Assigner</button>
                       <button onClick={() => setShowTagModal(true)}
-                        className="text-xs bg-purple-100 text-purple-700 px-2.5 py-1.5 rounded-lg hover:bg-purple-200 font-medium">+ Tag</button>
+                        className="text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-2.5 py-1.5 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-800 font-medium">+ Tag</button>
                       <button onClick={handleDeleteConversation}
-                        className="text-xs bg-red-100 text-red-700 px-2.5 py-1.5 rounded-lg hover:bg-red-200 font-medium" title="Supprimer la conversation">🗑️</button>
+                        className="text-xs bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 px-2.5 py-1.5 rounded-lg hover:bg-red-200 dark:hover:bg-red-800 font-medium" title="Supprimer la conversation">🗑️</button>
                     </div>
                   </div>
 
                   {/* Messages */}
-                  <div ref={messagesContainerRef} onScroll={(e) => { const el = e.currentTarget; isAtBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }} className="flex-1 overflow-y-auto p-4 bg-[#efeae2]" style={{backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23d4cfc8\' fill-opacity=\'0.3\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")'}}>
+                  <div ref={messagesContainerRef} onScroll={(e) => { const el = e.currentTarget; isAtBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }} className="flex-1 overflow-y-auto p-4 bg-[#efeae2] dark:bg-gray-900" style={{backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23d4cfc8\' fill-opacity=\'0.3\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")'}}>
                     {messages.length === 0 ? (
-                      <div className="flex items-center justify-center h-full text-gray-500 text-sm">Aucun message</div>
+                      <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400 text-sm">Aucun message</div>
                     ) : (() => {
                       const sorted = [...messages].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
                       const items: React.ReactNode[] = [];
@@ -452,9 +452,9 @@ export default function ConversationsPage() {
                           lastSender = '';
                           items.push(
                             <div key={`day-${dayKey}`} className="flex items-center gap-3 my-4">
-                              <div className="flex-1 h-px bg-gray-300/60" />
-                              <span className="text-xs text-gray-500 font-medium px-3 py-1 bg-white/80 rounded-full shadow-sm">{dayLabel}</span>
-                              <div className="flex-1 h-px bg-gray-300/60" />
+                              <div className="flex-1 h-px bg-gray-300/60 dark:bg-gray-600/60" />
+                              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium px-3 py-1 bg-white/80 dark:bg-gray-800/80 rounded-full shadow-sm">{dayLabel}</span>
+                              <div className="flex-1 h-px bg-gray-300/60 dark:bg-gray-600/60" />
                             </div>
                           );
                         }
@@ -477,28 +477,28 @@ export default function ConversationsPage() {
                             <div className={`max-w-[65%] flex flex-col ${isOutgoing ? 'items-end' : 'items-start'}`}>
                               {/* Label expéditeur (1ère bulle du groupe) */}
                               {m.sender_type === 'BOT' && (
-                                <span className="text-xs text-purple-600 font-medium mb-0.5 ml-1">🤖 Bot</span>
+                                <span className="text-xs text-purple-600 dark:text-purple-400 font-medium mb-0.5 ml-1">🤖 Bot</span>
                               )}
                               {m.sender_type === 'AGENT' && showAvatar && (
-                                <span className="text-xs text-green-700 font-medium mb-0.5 mr-1">Agent</span>
+                                <span className="text-xs text-green-700 dark:text-green-300 font-medium mb-0.5 mr-1">Agent</span>
                               )}
                               <div className={`relative group px-3.5 py-2 shadow-sm text-sm whitespace-pre-wrap break-words ${
                                 m.sender_type === 'AGENT'
-                                  ? 'bg-[#dcf8c6] text-gray-900 rounded-2xl rounded-br-sm'
+                                  ? 'bg-[#dcf8c6] dark:bg-green-900/40 text-gray-900 dark:text-white rounded-2xl rounded-br-sm'
                                   : m.sender_type === 'BOT'
-                                  ? 'bg-[#e9d5ff] text-gray-900 rounded-2xl rounded-br-sm'
-                                  : 'bg-white text-gray-900 rounded-2xl rounded-bl-sm'
+                                  ? 'bg-[#e9d5ff] dark:bg-purple-900/40 text-gray-900 dark:text-white rounded-2xl rounded-br-sm'
+                                  : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl rounded-bl-sm'
                               }`}>
                                 <button onClick={() => handleDeleteMessage(m.id)}
                                   className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow" title="Supprimer">✕</button>
                                 {m.content || <span className="italic text-gray-400">(média)</span>}
-                                <span className={`text-[10px] ml-2 float-right mt-1 ${isOutgoing ? 'text-gray-500' : 'text-gray-400'} flex items-center gap-0.5 float-right`}>
+                                <span className={`text-[10px] ml-2 float-right mt-1 ${isOutgoing ? 'text-gray-500 dark:text-gray-400' : 'text-gray-400'} flex items-center gap-0.5 float-right`}>
                                   {d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                   {isOutgoing && (() => {
                                     const s = m.status;
-                                    if (s === 'FAILED') return <span className="text-red-500 ml-1">✕</span>;
-                                    if (s === 'READ')      return <span className="text-blue-500 ml-1">✓✓</span>;
-                                    if (s === 'DELIVERED') return <span className="text-gray-500 ml-1">✓✓</span>;
+                                    if (s === 'FAILED') return <span className="text-red-500 dark:text-red-300 ml-1">✕</span>;
+                                    if (s === 'READ')      return <span className="text-blue-500 dark:text-blue-300 ml-1">✓✓</span>;
+                                    if (s === 'DELIVERED') return <span className="text-gray-500 dark:text-gray-400 ml-1">✓✓</span>;
                                     if (s === 'SENT')      return <span className="text-gray-400 ml-1">✓</span>;
                                     return <span className="text-gray-300 ml-1">🕐</span>;
                                   })()}
@@ -514,12 +514,12 @@ export default function ConversationsPage() {
 
                   {/* Input */}
                   {!isWindowOpen ? (
-                    <div className="border-t p-3 bg-red-50 text-center text-sm text-red-600">
+                    <div className="border-t p-3 bg-red-50 dark:bg-red-900/30 text-center text-sm text-red-600 dark:text-red-400">
                       ⛔ Fenêtre WhatsApp de 24h expirée — impossible d&apos;envoyer un message ici. Utilisez un template WhatsApp approuvé.
                     </div>
                   ) : isLocked && canWrite ? (
-                    <div className="border-t p-3 bg-amber-50 flex items-center gap-3">
-                      <span className="text-sm text-amber-700 flex-1">
+                    <div className="border-t p-3 bg-amber-50 dark:bg-amber-900/30 flex items-center gap-3">
+                      <span className="text-sm text-amber-700 dark:text-amber-300 flex-1">
                         {selected.status === 'AI'
                           ? '🤖 Bot actif — cliquez "Prendre" pour reprendre la main'
                           : selected.status === 'WAITING'
@@ -532,16 +532,16 @@ export default function ConversationsPage() {
                       </button>
                     </div>
                   ) : isLocked ? (
-                    <div className="border-t p-3 bg-gray-50 text-center text-sm text-gray-400">
+                    <div className="border-t p-3 bg-gray-50 dark:bg-gray-800 text-center text-sm text-gray-400">
                       🔒 Conversation gérée par le bot ou non assignée
                     </div>
                   ) : (
-                    <form onSubmit={handleSend} className="border-t p-3 flex gap-2 bg-white">
+                    <form onSubmit={handleSend} className="border-t p-3 flex gap-2 bg-white dark:bg-gray-800">
                       <input ref={inputRef}
                         value={newMessage}
                         onChange={e => setNewMessage(e.target.value)}
                         placeholder="Écrire un message… (Entrée pour envoyer)"
-                        className="flex-1 border border-gray-300 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                        className="flex-1 border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-green-500"
                       />
                       <button type="submit" disabled={sending || !newMessage.trim()}
                         className="bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700 disabled:opacity-50 text-sm font-semibold">
@@ -560,52 +560,52 @@ export default function ConversationsPage() {
 
             {/* ── Panneau client ── */}
             {selected && (
-              <div className="w-56 bg-white rounded-xl shadow p-4 flex-shrink-0 flex flex-col gap-4 overflow-y-auto">
+              <div className="w-56 bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex-shrink-0 flex flex-col gap-4 overflow-y-auto">
                 {(() => {
                   const cust = customers[selected.customer_id];
                   return (
                     <>
                       <div className="text-center">
-                        <div className="w-14 h-14 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-xl mx-auto mb-2">
+                        <div className="w-14 h-14 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 flex items-center justify-center font-bold text-xl mx-auto mb-2">
                           {clientLabel(cust).charAt(0).toUpperCase()}
                         </div>
-                        <p className="font-semibold text-gray-900 text-sm">{clientLabel(cust)}</p>
+                        <p className="font-semibold text-gray-900 dark:text-white text-sm">{clientLabel(cust)}</p>
                         {cust?.name && <p className="text-xs text-gray-400 mt-0.5">{cust.phone_number}</p>}
                       </div>
 
                       <div className="space-y-2 text-xs">
-                        <div className="bg-gray-50 rounded-lg p-2.5">
+                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5">
                           <p className="text-gray-400 font-medium mb-0.5">Statut conv.</p>
                           <span className={`font-semibold px-1.5 py-0.5 rounded-full ${STATUS_COLORS[selected.status]}`}>{selected.status}</span>
                         </div>
-                        <div className="bg-gray-50 rounded-lg p-2.5">
+                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5">
                           <p className="text-gray-400 font-medium mb-0.5">Priorité</p>
                           <div className="flex items-center gap-1">
                             <span className={`w-2 h-2 rounded-full ${PRIORITY_DOT[selected.priority]}`} />
-                            <span className="font-semibold text-gray-700">{selected.priority}</span>
+                            <span className="font-semibold text-gray-700 dark:text-gray-200">{selected.priority}</span>
                           </div>
                         </div>
-                        <div className="bg-gray-50 rounded-lg p-2.5">
+                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5">
                           <p className="text-gray-400 font-medium mb-0.5">Agent assigné</p>
-                          <p className="font-semibold text-gray-700">
+                          <p className="font-semibold text-gray-700 dark:text-gray-200">
                             {assignedAgent ? `${assignedAgent.first_name} ${assignedAgent.last_name}` : '—'}
                           </p>
-                          {isMine && <p className="text-green-600 text-xs mt-0.5">C'est vous ✓</p>}
+                          {isMine && <p className="text-green-600 dark:text-green-400 text-xs mt-0.5">C'est vous ✓</p>}
                         </div>
                         {cust?.last_seen_at && (
-                          <div className="bg-gray-50 rounded-lg p-2.5">
+                          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5">
                             <p className="text-gray-400 font-medium mb-0.5">Dernière activité</p>
-                            <p className="font-semibold text-gray-700">
+                            <p className="font-semibold text-gray-700 dark:text-gray-200">
                               {new Date(cust.last_seen_at).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' })}
                             </p>
                           </div>
                         )}
                         {selected.tags && selected.tags.length > 0 && (
-                          <div className="bg-gray-50 rounded-lg p-2.5">
+                          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5">
                             <p className="text-gray-400 font-medium mb-1">Tags</p>
                             <div className="flex flex-wrap gap-1">
                               {selected.tags.map((t, i) => (
-                                <span key={i} className="bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded text-xs">{t}</span>
+                                <span key={i} className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded text-xs">{t}</span>
                               ))}
                             </div>
                           </div>
@@ -623,16 +623,16 @@ export default function ConversationsPage() {
       {/* ── Modal Statut ── */}
       {showStatusModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-80 shadow-xl">
-            <h3 className="font-bold text-gray-900 mb-4">Changer le statut</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-80 shadow-xl">
+            <h3 className="font-bold text-gray-900 dark:text-white mb-4">Changer le statut</h3>
             <div className="grid grid-cols-2 gap-2 mb-4">
               {STATUSES.map(s => (
                 <button key={s} onClick={() => setModalStatus(s)}
-                  className={`py-2 rounded-lg text-sm font-medium border-2 transition-colors ${modalStatus === s ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>{s}</button>
+                  className={`py-2 rounded-lg text-sm font-medium border-2 transition-colors ${modalStatus === s ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-300'}`}>{s}</button>
               ))}
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setShowStatusModal(false)} className="flex-1 border border-gray-300 py-2 rounded-lg text-sm hover:bg-gray-50:bg-gray-700">Annuler</button>
+              <button onClick={() => setShowStatusModal(false)} className="flex-1 border border-gray-300 dark:border-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50:bg-gray-700">Annuler</button>
               <button onClick={handleChangeStatus} className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700">Appliquer</button>
             </div>
           </div>
@@ -642,17 +642,17 @@ export default function ConversationsPage() {
       {/* ── Modal Assigner ── */}
       {showAssignModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-80 shadow-xl">
-            <h3 className="font-bold text-gray-900 mb-4">Assigner un agent</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-80 shadow-xl">
+            <h3 className="font-bold text-gray-900 dark:text-white mb-4">Assigner un agent</h3>
             <select value={modalAgentId} onChange={e => setModalAgentId(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4 focus:ring-2 focus:ring-green-500">
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm mb-4 focus:ring-2 focus:ring-green-500">
               <option value="">— Choisir un agent —</option>
               {agents.map(a => (
                 <option key={a.id} value={a.id}>{a.first_name} {a.last_name} ({a.email})</option>
               ))}
             </select>
             <div className="flex gap-2">
-              <button onClick={() => setShowAssignModal(false)} className="flex-1 border border-gray-300 py-2 rounded-lg text-sm hover:bg-gray-50:bg-gray-700">Annuler</button>
+              <button onClick={() => setShowAssignModal(false)} className="flex-1 border border-gray-300 dark:border-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50:bg-gray-700">Annuler</button>
               <button onClick={handleAssign} disabled={!modalAgentId} className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 disabled:opacity-50">Assigner</button>
             </div>
           </div>
@@ -662,15 +662,15 @@ export default function ConversationsPage() {
       {/* ── Modal Tag ── */}
       {showTagModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-80 shadow-xl">
-            <h3 className="font-bold text-gray-900 mb-4">Ajouter un tag</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-80 shadow-xl">
+            <h3 className="font-bold text-gray-900 dark:text-white mb-4">Ajouter un tag</h3>
             <input type="text" value={modalTag} onChange={e => setModalTag(e.target.value)}
               placeholder="Ex: urgent, support, vente…"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4 focus:ring-2 focus:ring-green-500"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm mb-4 focus:ring-2 focus:ring-green-500"
               onKeyDown={e => e.key === 'Enter' && handleAddTag()}
             />
             <div className="flex gap-2">
-              <button onClick={() => setShowTagModal(false)} className="flex-1 border border-gray-300 py-2 rounded-lg text-sm hover:bg-gray-50:bg-gray-700">Annuler</button>
+              <button onClick={() => setShowTagModal(false)} className="flex-1 border border-gray-300 dark:border-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50:bg-gray-700">Annuler</button>
               <button onClick={handleAddTag} className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700">Ajouter</button>
             </div>
           </div>

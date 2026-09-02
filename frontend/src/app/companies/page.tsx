@@ -119,7 +119,7 @@ export default function CompaniesPage() {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="text-red-600 text-lg font-medium">⛔ Accès réservé au Super Admin</div>
+          <div className="text-red-600 dark:text-red-400 text-lg font-medium">⛔ Accès réservé au Super Admin</div>
         </div>
       </AppLayout>
     );
@@ -131,8 +131,8 @@ export default function CompaniesPage() {
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">🏢 Entreprises</h1>
-            <p className="text-sm text-gray-500 mt-1">{companies.length} entreprise(s)</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">🏢 Entreprises</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{companies.length} entreprise(s)</p>
           </div>
           <button
             onClick={openCreate}
@@ -144,77 +144,77 @@ export default function CompaniesPage() {
 
         {/* Alerts */}
         {error && (
-          <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-lg mb-4 flex justify-between">
+          <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-4 flex justify-between">
             <span>{error}</span>
             <button onClick={() => setError('')}>✕</button>
           </div>
         )}
         {success && (
-          <div className="bg-green-50 border border-green-300 text-green-700 px-4 py-3 rounded-lg mb-4 flex justify-between">
+          <div className="bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg mb-4 flex justify-between">
             <span>✅ {success}</span>
             <button onClick={() => setSuccess('')}>✕</button>
           </div>
         )}
 
         {/* Table */}
-        <div className="bg-white shadow rounded-xl overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-xl overflow-hidden">
           {loading ? (
             <div className="text-center py-12 text-gray-400">Chargement...</div>
           ) : companies.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
-              Aucune entreprise. <button onClick={openCreate} className="text-green-600 underline">Créer la première</button>
+              Aucune entreprise. <button onClick={openCreate} className="text-green-600 dark:text-green-400 underline">Créer la première</button>
             </div>
           ) : (
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
                   {['Nom', 'Email', 'Statut', 'Plan', 'ML', 'Créée le', 'Actions'].map(h => (
-                    <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                    <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
                 {companies.map((c) => (
-                  <tr key={c.id} className="hover:bg-gray-50">
+                  <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900">{c.name}</div>
+                      <div className="font-medium text-gray-900 dark:text-white">{c.name}</div>
                       <div className="text-xs text-gray-400">{c.slug}</div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{c.email || '—'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{c.email || '—'}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        c.is_active && !c.is_suspended ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        c.is_active && !c.is_suspended ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200'
                       }`}>
                         {c.is_active && !c.is_suspended ? '✅ Active' : '🔴 Inactive'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        c.subscription_plan === 'FREE' ? 'bg-gray-100 text-gray-800' :
-                        c.subscription_plan === 'BASIC' ? 'bg-blue-100 text-blue-800' :
-                        c.subscription_plan === 'PREMIUM' ? 'bg-purple-100 text-purple-800' :
-                        'bg-yellow-100 text-yellow-800'
+                        c.subscription_plan === 'FREE' ? 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100' :
+                        c.subscription_plan === 'BASIC' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200' :
+                        c.subscription_plan === 'PREMIUM' ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200' :
+                        'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200'
                       }`}>
                         {c.subscription_plan}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        c.ml_enabled ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+                        c.ml_enabled ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200' : 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100'
                       }`}>
                         {c.ml_enabled ? '🤖 ON' : 'OFF'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                       {new Date(c.created_at).toLocaleDateString('fr-FR')}
                     </td>
                     <td className="px-6 py-4 text-sm space-x-2">
-                      <button onClick={() => openEdit(c)} className="text-indigo-600 hover:text-indigo-900 font-medium">Éditer</button>
+                      <button onClick={() => openEdit(c)} className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 font-medium">Éditer</button>
                       {c.slug !== 'system' && <>
-                        <button onClick={() => handleToggle(c)} className="text-amber-600 hover:text-amber-900 font-medium">
+                        <button onClick={() => handleToggle(c)} className="text-amber-600 dark:text-amber-400 hover:text-amber-900 font-medium">
                           {c.is_active ? 'Désactiver' : 'Activer'}
                         </button>
-                        <button onClick={() => handleDelete(c)} className="text-red-600 hover:text-red-900 font-medium">Supprimer</button>
+                        <button onClick={() => handleDelete(c)} className="text-red-600 dark:text-red-400 hover:text-red-900 font-medium">Supprimer</button>
                       </>}
                     </td>
                   </tr>
@@ -228,63 +228,63 @@ export default function CompaniesPage() {
       {/* Modal Create/Edit */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
               {editing ? '✏️ Modifier l\'entreprise' : '🏢 Nouvelle entreprise'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Nom *</label>
                   <input type="text" required value={form.name}
                     onChange={e => setForm({ ...form, name: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
                     placeholder="Nom de l'entreprise" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Slug <span className="text-gray-400">(auto)</span></label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Slug <span className="text-gray-400">(auto)</span></label>
                   <input type="text" value={form.slug}
                     onChange={e => setForm({ ...form, slug: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-mono"
                     placeholder={form.name ? form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'mon-entreprise'} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Email</label>
                   <input type="email" value={form.email}
                     onChange={e => setForm({ ...form, email: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm"
                     placeholder="contact@entreprise.com" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Téléphone</label>
                   <input type="text" value={form.phone}
                     onChange={e => setForm({ ...form, phone: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm"
                     placeholder="+237 6XX XXX XXX" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Adresse</label>
                 <input type="text" value={form.address}
                   onChange={e => setForm({ ...form, address: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm"
                   placeholder="Zone Industrielle, Douala" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Site web</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Site web</label>
                   <input type="text" value={form.website}
                     onChange={e => setForm({ ...form, website: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm"
                     placeholder="https://monsite.com" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Logo</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Logo</label>
                   <div className="flex items-center gap-2">
                     {form.logo_url && <img src={form.logo_url} alt="logo" className="h-8 w-8 rounded object-cover border" />}
-                    <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 font-medium">
+                    <label className="cursor-pointer bg-gray-100 dark:bg-gray-900 hover:bg-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-700 dark:text-gray-200 font-medium">
                       {form.logo_url ? 'Changer' : 'Uploader'}
                       <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
                         const file = e.target.files?.[0];
@@ -301,19 +301,19 @@ export default function CompaniesPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Description</label>
                 <textarea value={form.description}
                   onChange={e => setForm({ ...form, description: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm"
                   rows={2} placeholder="Description (optionnel)" />
               </div>
               <div className="border-t pt-3 mt-1">
-                <p className="text-xs font-semibold text-gray-500 mb-2">⚙️ Paramètres de l'entreprise</p>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">⚙️ Paramètres de l'entreprise</p>
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Plan d'abonnement</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-1">Plan d'abonnement</label>
                     <select value={form.subscription_plan} onChange={e => setForm({ ...form, subscription_plan: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-white focus:ring-2 focus:ring-green-500">
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-gray-800 focus:ring-2 focus:ring-green-500">
                       <option value="FREE">FREE (Gratuit - Sans ML)</option>
                       <option value="BASIC">BASIC (ML limité)</option>
                       <option value="PREMIUM">PREMIUM (ML complet)</option>
@@ -324,47 +324,47 @@ export default function CompaniesPage() {
                     <input type="checkbox" id="ml_enabled" checked={form.ml_enabled}
                       onChange={e => setForm({ ...form, ml_enabled: e.target.checked })}
                       disabled={form.subscription_plan === 'FREE'}
-                      className="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500 disabled:opacity-50" />
-                    <label htmlFor="ml_enabled" className="text-sm font-medium text-gray-700">Activer ML</label>
+                      className="h-4 w-4 text-green-600 dark:text-green-400 border-gray-300 dark:border-gray-600 rounded focus:ring-green-500 disabled:opacity-50" />
+                    <label htmlFor="ml_enabled" className="text-sm font-medium text-gray-700 dark:text-gray-200">Activer ML</label>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Fuseau horaire</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-1">Fuseau horaire</label>
                     <input type="text" value={form.timezone}
                       onChange={e => setForm({ ...form, timezone: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs"
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs"
                       placeholder="Africa/Douala" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Langue</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-1">Langue</label>
                     <input type="text" value={form.language}
                       onChange={e => setForm({ ...form, language: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs"
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs"
                       placeholder="fr" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Devise</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-1">Devise</label>
                     <input type="text" value={form.currency}
                       onChange={e => setForm({ ...form, currency: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs"
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs"
                       placeholder="XAF" />
                   </div>
                 </div>
                 <div className="mt-2">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Couleur thème</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-1">Couleur thème</label>
                   <div className="flex items-center gap-2">
                     <input type="color" value={form.theme_color}
                       onChange={e => setForm({ ...form, theme_color: e.target.value })}
-                      className="h-8 w-10 rounded border border-gray-300 cursor-pointer" />
-                    <span className="text-xs text-gray-500 font-mono">{form.theme_color}</span>
+                      className="h-8 w-10 rounded border border-gray-300 dark:border-gray-600 cursor-pointer" />
+                    <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">{form.theme_color}</span>
                   </div>
                 </div>
               </div>
-              {error && <p className="text-red-600 text-sm">{error}</p>}
+              {error && <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={closeModal}
-                  className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 text-sm font-medium">
+                  className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium">
                   Annuler
                 </button>
                 <button type="submit" disabled={submitting}
@@ -379,11 +379,11 @@ export default function CompaniesPage() {
       {/* Confirm Delete Modal */}
       {confirmDelete && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
-            <h2 className="text-lg font-bold text-gray-900 mb-2">🗑️ Confirmer la suppression</h2>
-            <p className="text-sm text-gray-600 mb-4">Supprimer <strong>{confirmDelete.name}</strong> ? Cette action est irréversible.</p>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">🗑️ Confirmer la suppression</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Supprimer <strong>{confirmDelete.name}</strong> ? Cette action est irréversible.</p>
             <div className="flex gap-3">
-              <button onClick={() => setConfirmDelete(null)} className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 text-sm font-medium">Annuler</button>
+              <button onClick={() => setConfirmDelete(null)} className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium">Annuler</button>
               <button onClick={confirmDeleteAction} className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 text-sm font-medium">Supprimer</button>
             </div>
           </div>

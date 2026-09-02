@@ -95,7 +95,7 @@ export default function SuperadminMLProvidersPage() {
     <AppLayout>
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Configuration des Providers ML</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Configuration des Providers ML</h1>
           <button
             onClick={() => {
               setEditingConfig(null);
@@ -108,7 +108,7 @@ export default function SuperadminMLProvidersPage() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded-lg mb-4 flex justify-between text-sm">
+          <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-2 rounded-lg mb-4 flex justify-between text-sm">
             <span>{error}</span>
             <button onClick={() => setError('')}>✕</button>
           </div>
@@ -118,20 +118,20 @@ export default function SuperadminMLProvidersPage() {
           {configs.map((config) => (
             <div
               key={config.id}
-              className={`bg-white shadow rounded-lg p-6 border-2 ${
-                config.is_active ? 'border-green-500' : 'border-gray-200'
+              className={`bg-white dark:bg-gray-800 shadow rounded-lg p-6 border-2 ${
+                config.is_active ? 'border-green-500' : 'border-gray-200 dark:border-gray-700'
               }`}
             >
               <div className="flex justify-between items-start mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">{config.provider_type}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{config.provider_type}</h3>
                 {config.is_active && (
-                  <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                  <span className="bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 text-xs px-2 py-1 rounded-full">
                     Active
                   </span>
                 )}
               </div>
 
-              <div className="space-y-2 text-sm text-gray-600">
+              <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                 <p><strong>Model:</strong> {config.default_model || 'Not configured'}</p>
                 <p><strong>Temperature:</strong> {config.default_temperature || 'N/A'}</p>
                 <p><strong>Max Tokens:</strong> {config.default_max_tokens || 'N/A'}</p>
@@ -143,13 +143,13 @@ export default function SuperadminMLProvidersPage() {
                 <div className="space-x-2">
                   <button
                     onClick={() => handleEdit(config)}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 text-sm"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDelete(config.provider_type)}
-                    className="text-red-600 hover:text-red-800 text-sm"
+                    className="text-red-600 dark:text-red-400 hover:text-red-800 text-sm"
                   >
                     Delete
                   </button>
@@ -168,7 +168,7 @@ export default function SuperadminMLProvidersPage() {
         </div>
 
         {configs.length === 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center text-gray-500 dark:text-gray-400">
             Aucun provider ML configuré. Cliquez sur "+ Provider" pour commencer.
           </div>
         )}
@@ -217,21 +217,21 @@ function ProviderConfigModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-lg w-full mx-4">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
           {config ? 'Edit Provider' : 'Add Provider'}
         </h2>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               Provider Type
             </label>
             <select
               value={formData.provider_type}
               onChange={(e) => handleChange('provider_type', e.target.value)}
               disabled={!!config}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2"
             >
               <option value="OPENAI">OpenAI</option>
               <option value="MISTRAL">Mistral</option>
@@ -240,7 +240,7 @@ function ProviderConfigModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               API Key
             </label>
             <input
@@ -248,12 +248,12 @@ function ProviderConfigModal({
               value={formData.api_key || ''}
               onChange={(e) => handleChange('api_key', e.target.value)}
               placeholder="Enter API key"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               API Endpoint (optional)
             </label>
             <input
@@ -261,12 +261,12 @@ function ProviderConfigModal({
               value={formData.api_endpoint || ''}
               onChange={(e) => handleChange('api_endpoint', e.target.value)}
               placeholder="https://api.example.com"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               Default Model
             </label>
             <input
@@ -274,13 +274,13 @@ function ProviderConfigModal({
               value={formData.default_model || ''}
               onChange={(e) => handleChange('default_model', e.target.value)}
               placeholder="e.g., gpt-3.5-turbo, mistral-small-latest"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                 Temperature (0-200)
               </label>
               <input
@@ -289,11 +289,11 @@ function ProviderConfigModal({
                 onChange={(e) => handleChange('default_temperature', parseInt(e.target.value))}
                 min="0"
                 max="200"
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                 Max Tokens
               </label>
               <input
@@ -301,14 +301,14 @@ function ProviderConfigModal({
                 value={formData.default_max_tokens || 500}
                 onChange={(e) => handleChange('default_max_tokens', parseInt(e.target.value))}
                 min="1"
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                 Requests/Minute
               </label>
               <input
@@ -317,11 +317,11 @@ function ProviderConfigModal({
                 onChange={(e) => handleChange('requests_per_minute', parseInt(e.target.value) || null)}
                 min="1"
                 placeholder="Optional"
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                 Requests/Day
               </label>
               <input
@@ -330,7 +330,7 @@ function ProviderConfigModal({
                 onChange={(e) => handleChange('requests_per_day', parseInt(e.target.value) || null)}
                 min="1"
                 placeholder="Optional"
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2"
               />
             </div>
           </div>
@@ -343,7 +343,7 @@ function ProviderConfigModal({
               onChange={(e) => handleChange('is_active', e.target.checked)}
               className="mr-2"
             />
-            <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
+            <label htmlFor="is_active" className="text-sm font-medium text-gray-700 dark:text-gray-200">
               Set as active (will deactivate all other providers)
             </label>
           </div>
@@ -352,7 +352,7 @@ function ProviderConfigModal({
         <div className="flex justify-end space-x-3 mt-6">
           <button
             onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             Cancel
           </button>

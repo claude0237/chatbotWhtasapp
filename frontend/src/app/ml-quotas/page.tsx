@@ -90,11 +90,11 @@ export default function MLQuotasPage() {
 
   const getPlanBadgeColor = (plan: string) => {
     switch (plan) {
-      case 'FREE': return 'bg-gray-100 text-gray-800';
-      case 'BASIC': return 'bg-blue-100 text-blue-800';
-      case 'PREMIUM': return 'bg-purple-100 text-purple-800';
-      case 'ENTERPRISE': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'FREE': return 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100';
+      case 'BASIC': return 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200';
+      case 'PREMIUM': return 'bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200';
+      case 'ENTERPRISE': return 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200';
+      default: return 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100';
     }
   };
 
@@ -102,53 +102,53 @@ export default function MLQuotasPage() {
     <AppLayout>
       <div className="max-w-6xl mx-auto p-6">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">🤖 Quotas Machine Learning</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">🤖 Quotas Machine Learning</h1>
           <button onClick={() => { setEditing(null); setForm({ plan: 'FREE', monthly_requests: 0, daily_requests: null, max_tokens_per_request: null, price_per_1000_requests: null }); setShowModal(true); }}
             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-medium">
             + Créer un quota
           </button>
         </div>
 
-        {success && <div className="bg-green-50 border border-green-300 text-green-700 px-4 py-2 rounded-lg mb-4 flex justify-between text-sm"><span>{success}</span><button onClick={() => setSuccess('')}>✕</button></div>}
-        {error && <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded-lg mb-4 flex justify-between text-sm"><span>{error}</span><button onClick={() => setError('')}>✕</button></div>}
+        {success && <div className="bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 px-4 py-2 rounded-lg mb-4 flex justify-between text-sm"><span>{success}</span><button onClick={() => setSuccess('')}>✕</button></div>}
+        {error && <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-2 rounded-lg mb-4 flex justify-between text-sm"><span>{error}</span><button onClick={() => setError('')}>✕</button></div>}
 
         {loading ? (
           <div className="text-center py-12 text-gray-400">Chargement...</div>
         ) : quotas.length === 0 ? (
           <div className="text-center py-12 text-gray-400">
-            Aucun quota configuré. <button onClick={() => { setEditing(null); setForm({ plan: 'FREE', monthly_requests: 0, daily_requests: null, max_tokens_per_request: null, price_per_1000_requests: null }); setShowModal(true); }} className="text-green-600 underline">Créer le premier</button>
+            Aucun quota configuré. <button onClick={() => { setEditing(null); setForm({ plan: 'FREE', monthly_requests: 0, daily_requests: null, max_tokens_per_request: null, price_per_1000_requests: null }); setShowModal(true); }} className="text-green-600 dark:text-green-400 underline">Créer le premier</button>
           </div>
         ) : (
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
                 {['Plan', 'Requêtes/mois', 'Requêtes/jour', 'Max tokens/requête', 'Prix/1000 req', 'Actions'].map(h => (
-                  <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                  <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
               {quotas.map((q) => (
-                <tr key={q.id} className="hover:bg-gray-50">
+                <tr key={q.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getPlanBadgeColor(q.plan)}`}>
                       {q.plan}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
+                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                     {q.monthly_requests === -1 ? 'Illimité' : q.monthly_requests}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
+                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                     {q.daily_requests || '—'}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
+                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                     {q.max_tokens_per_request || '—'}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
+                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                     {q.price_per_1000_requests ? `${q.price_per_1000_requests / 100}€` : '—'}
                   </td>
                   <td className="px-6 py-4 text-sm space-x-2">
-                    <button onClick={() => openEdit(q)} className="text-indigo-600 hover:text-indigo-900 font-medium">Éditer</button>
+                    <button onClick={() => openEdit(q)} className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 font-medium">Éditer</button>
                   </td>
                 </tr>
               ))}
@@ -159,14 +159,14 @@ export default function MLQuotasPage() {
         {/* Modal */}
         {showModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl">
-              <h3 className="font-bold text-gray-900 mb-4">{editing ? '✏️ Modifier le quota' : '🤖 Créer un quota'}</h3>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-lg shadow-xl">
+              <h3 className="font-bold text-gray-900 dark:text-white mb-4">{editing ? '✏️ Modifier le quota' : '🤖 Créer un quota'}</h3>
               <form onSubmit={handleSubmit} className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Plan d'abonnement *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Plan d'abonnement *</label>
                   <select value={form.plan} onChange={e => setForm({ ...form, plan: e.target.value })}
                     disabled={!!editing}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-green-500">
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:ring-2 focus:ring-green-500">
                     <option value="FREE">FREE</option>
                     <option value="BASIC">BASIC</option>
                     <option value="PREMIUM">PREMIUM</option>
@@ -174,32 +174,32 @@ export default function MLQuotasPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Requêtes mensuelles *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Requêtes mensuelles *</label>
                   <input type="number" required value={form.monthly_requests} onChange={e => setForm({ ...form, monthly_requests: parseInt(e.target.value) })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
                     placeholder="0 pour aucun, -1 pour illimité" />
-                  <p className="text-xs text-gray-500 mt-1">-1 = illimité, 0 = désactivé</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">-1 = illimité, 0 = désactivé</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Requêtes journalières (optionnel)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Requêtes journalières (optionnel)</label>
                   <input type="number" value={form.daily_requests || ''} onChange={e => setForm({ ...form, daily_requests: e.target.value ? parseInt(e.target.value) : null })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
                     placeholder="Laisser vide pour illimité" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Max tokens par requête (optionnel)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Max tokens par requête (optionnel)</label>
                   <input type="number" value={form.max_tokens_per_request || ''} onChange={e => setForm({ ...form, max_tokens_per_request: e.target.value ? parseInt(e.target.value) : null })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
                     placeholder="Ex: 500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prix pour 1000 requêtes en centimes (optionnel)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Prix pour 1000 requêtes en centimes (optionnel)</label>
                   <input type="number" value={form.price_per_1000_requests || ''} onChange={e => setForm({ ...form, price_per_1000_requests: e.target.value ? parseInt(e.target.value) : null })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
                     placeholder="Ex: 50 pour 0.50€" />
                 </div>
                 <div className="flex gap-2 pt-2">
-                  <button type="button" onClick={closeModal} className="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 text-sm font-medium">Annuler</button>
+                  <button type="button" onClick={closeModal} className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 px-4 py-2 rounded-lg hover:bg-gray-300 text-sm font-medium">Annuler</button>
                   <button type="submit" disabled={submitting} className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-medium disabled:opacity-50">
                     {submitting ? 'Enregistrement...' : (editing ? 'Mettre à jour' : 'Créer')}
                   </button>

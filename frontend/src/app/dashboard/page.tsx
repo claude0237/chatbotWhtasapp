@@ -175,10 +175,10 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-800">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-300">Chargement...</p>
         </div>
       </div>
     );
@@ -191,20 +191,20 @@ export default function Dashboard() {
     user.role === 'COMPANY_ADMIN' ? 'Admin Entreprise' : 'Agent';
 
   const AGENT_CARDS = [
-    { href: '/conversations', icon: '✋', label: 'Assignées à moi',   count: stats.assigned_to_me,  color: 'bg-green-50 border-green-300 text-green-700',  highlight: (stats.assigned_to_me || 0) > 0 },
-    { href: '/conversations', icon: '⏳', label: 'En attente',        count: stats.conv_waiting,    color: 'bg-amber-50 border-amber-300 text-amber-700',  highlight: (stats.conv_waiting || 0) > 0 },
-    { href: '/conversations', icon: '�', label: 'Non assignées',     count: stats.unassigned,      color: 'bg-red-50 border-red-300 text-red-700',        highlight: (stats.unassigned || 0) > 0 },
-    { href: '/conversations', icon: '💬', label: 'Ouvertes total',    count: stats.conv_open,       color: 'bg-blue-50 border-blue-200 text-blue-700',     highlight: false },
-    { href: '/conversations', icon: '✅', label: 'Clôturées',         count: stats.conv_closed,     color: 'bg-gray-50 border-gray-200 text-gray-600',     highlight: false },
-    { href: '/customers',     icon: '👤', label: 'Clients',           count: stats.customers_total, color: 'bg-purple-50 border-purple-200 text-purple-700', highlight: false },
+    { href: '/conversations', icon: '✋', label: 'Assignées à moi',   count: stats.assigned_to_me,  color: 'bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300',  highlight: (stats.assigned_to_me || 0) > 0 },
+    { href: '/conversations', icon: '⏳', label: 'En attente',        count: stats.conv_waiting,    color: 'bg-amber-50 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300',  highlight: (stats.conv_waiting || 0) > 0 },
+    { href: '/conversations', icon: '�', label: 'Non assignées',     count: stats.unassigned,      color: 'bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300',        highlight: (stats.unassigned || 0) > 0 },
+    { href: '/conversations', icon: '💬', label: 'Ouvertes total',    count: stats.conv_open,       color: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',     highlight: false },
+    { href: '/conversations', icon: '✅', label: 'Clôturées',         count: stats.conv_closed,     color: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300',     highlight: false },
+    { href: '/customers',     icon: '👤', label: 'Clients',           count: stats.customers_total, color: 'bg-purple-50 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300', highlight: false },
   ];
 
   const STATUS_COLORS: Record<string, string> = {
-    OPEN:    'bg-green-100 text-green-800',
-    WAITING: 'bg-yellow-100 text-yellow-800',
-    AI:      'bg-purple-100 text-purple-800',
-    AGENT:   'bg-blue-100 text-blue-800',
-    CLOSED:  'bg-gray-100 text-gray-800',
+    OPEN:    'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200',
+    WAITING: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200',
+    AI:      'bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200',
+    AGENT:   'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200',
+    CLOSED:  'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100',
   };
 
   const timeAgo = (date: string) => {
@@ -220,9 +220,9 @@ export default function Dashboard() {
 
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Bonjour, {user.first_name} 👋</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Connecté en tant que <span className="font-medium text-green-600">{roleLabel}</span>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Bonjour, {user.first_name} 👋</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Connecté en tant que <span className="font-medium text-green-600 dark:text-green-400">{roleLabel}</span>
           </p>
         </div>
 
@@ -232,10 +232,10 @@ export default function Dashboard() {
             {/* Stats cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Entreprises total',     value: stats.companies_total,     icon: '🏢', color: 'bg-indigo-50 border-indigo-200 text-indigo-700' },
-                { label: 'Actives',               value: stats.companies_active,    icon: '✅', color: 'bg-green-50 border-green-200 text-green-700' },
-                { label: 'Suspendues',            value: stats.companies_suspended, icon: '⛔', color: stats.companies_suspended ? 'bg-red-50 border-red-300 text-red-700' : 'bg-gray-50 border-gray-200 text-gray-500' },
-                { label: 'Créées ce mois',        value: stats.companies_this_month,icon: '📅', color: 'bg-blue-50 border-blue-200 text-blue-700' },
+                { label: 'Entreprises total',     value: stats.companies_total,     icon: '🏢', color: 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300' },
+                { label: 'Actives',               value: stats.companies_active,    icon: '✅', color: 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300' },
+                { label: 'Suspendues',            value: stats.companies_suspended, icon: '⛔', color: stats.companies_suspended ? 'bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400' },
+                { label: 'Créées ce mois',        value: stats.companies_this_month,icon: '📅', color: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300' },
               ].map(c => (
                 <div key={c.label} className={`rounded-xl border-2 p-5 ${c.color}`}>
                   <div className="flex items-center justify-between mb-2">
@@ -251,7 +251,7 @@ export default function Dashboard() {
 
             {/* Utilisateurs */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="rounded-xl border-2 bg-purple-50 border-purple-200 text-purple-700 p-5">
+              <div className="rounded-xl border-2 bg-purple-50 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 p-5">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-2xl">👥</span>
                   {stats.users !== undefined && <span className="text-3xl font-bold">{stats.users}</span>}
@@ -261,8 +261,8 @@ export default function Dashboard() {
             </div>
 
             {/* Actions rapides */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-base font-semibold text-gray-800 mb-4">⚡ Actions rapides</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-4">⚡ Actions rapides</h2>
               <div className="flex flex-wrap gap-3">
                 <Link href="/companies" className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 text-sm font-medium">
                   + Nouvelle entreprise
@@ -275,18 +275,18 @@ export default function Dashboard() {
 
             {/* Alertes : entreprises suspendues */}
             {suspendedCompanies.length > 0 && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-                <h2 className="text-base font-semibold text-red-700 mb-4">
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl p-6">
+                <h2 className="text-base font-semibold text-red-700 dark:text-red-300 mb-4">
                   🚨 Entreprises suspendues ({suspendedCompanies.length})
                 </h2>
                 <div className="space-y-2">
                   {suspendedCompanies.map(c => (
-                    <div key={c.id} className="flex items-center justify-between bg-white rounded-lg px-4 py-2 border border-red-100">
+                    <div key={c.id} className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg px-4 py-2 border border-red-100 dark:border-red-900">
                       <div>
-                        <span className="text-sm font-medium text-gray-900">{c.name}</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{c.name}</span>
                         <span className="text-xs text-gray-400 ml-2">{c.slug}</span>
                       </div>
-                      <Link href="/companies" className="text-xs text-indigo-600 hover:underline font-medium">
+                      <Link href="/companies" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
                         Gérer →
                       </Link>
                     </div>
@@ -298,10 +298,10 @@ export default function Dashboard() {
             {/* Récents */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Dernières entreprises */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-base font-semibold text-gray-800">🏢 Dernières entreprises</h2>
-                  <Link href="/companies" className="text-xs text-indigo-600 hover:underline">Voir tout</Link>
+                  <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">🏢 Dernières entreprises</h2>
+                  <Link href="/companies" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Voir tout</Link>
                 </div>
                 <div className="space-y-3">
                   {recentCompanies.length === 0 ? (
@@ -309,17 +309,17 @@ export default function Dashboard() {
                   ) : recentCompanies.map(c => (
                     <div key={c.id} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                           {c.name[0].toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900">{c.name}</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{c.name}</p>
                           <p className="text-xs text-gray-400">{new Date(c.created_at).toLocaleDateString('fr-FR')}</p>
                         </div>
                       </div>
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        c.is_suspended ? 'bg-red-100 text-red-700' :
-                        c.is_active    ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                        c.is_suspended ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300' :
+                        c.is_active    ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400'
                       }`}>
                         {c.is_suspended ? 'Suspendue' : c.is_active ? 'Active' : 'Inactive'}
                       </span>
@@ -329,29 +329,29 @@ export default function Dashboard() {
               </div>
 
               {/* Derniers utilisateurs */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-base font-semibold text-gray-800">👥 Derniers utilisateurs</h2>
-                  <Link href="/users" className="text-xs text-indigo-600 hover:underline">Voir tout</Link>
+                  <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">👥 Derniers utilisateurs</h2>
+                  <Link href="/users" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Voir tout</Link>
                 </div>
                 <div className="space-y-3">
                   {recentUsers.length === 0 ? (
                     <p className="text-sm text-gray-400 text-center py-4">Aucun utilisateur</p>
                   ) : recentUsers.map(u => (
                     <div key={u.id} className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-sm">
+                      <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold text-sm">
                         {(u.first_name || u.email)[0].toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                           {u.first_name} {u.last_name}
                         </p>
                         <p className="text-xs text-gray-400 truncate">{u.email}</p>
                       </div>
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
-                        u.role === 'SUPER_ADMIN'   ? 'bg-red-100 text-red-700' :
-                        u.role === 'COMPANY_ADMIN' ? 'bg-indigo-100 text-indigo-700' :
-                        'bg-gray-100 text-gray-600'
+                        u.role === 'SUPER_ADMIN'   ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300' :
+                        u.role === 'COMPANY_ADMIN' ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300' :
+                        'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300'
                       }`}>
                         {u.role === 'SUPER_ADMIN' ? 'Super Admin' : u.role === 'COMPANY_ADMIN' ? 'Admin' : 'Agent'}
                       </span>
@@ -365,8 +365,8 @@ export default function Dashboard() {
 
         {/* ── WAITING alert banner (COMPANY_ADMIN + AGENT) ── */}
         {(user.role === 'COMPANY_ADMIN' || user.role === 'AGENT') && waitingConvs.length > 0 && (
-          <div className="animate-pulse bg-amber-50 border-2 border-amber-400 rounded-xl px-5 py-3 flex items-center justify-between gap-3">
-            <span className="text-amber-800 font-semibold text-sm">
+          <div className="animate-pulse bg-amber-50 dark:bg-amber-900/30 border-2 border-amber-400 dark:border-amber-600 rounded-xl px-5 py-3 flex items-center justify-between gap-3">
+            <span className="text-amber-800 dark:text-amber-200 font-semibold text-sm">
               🔔 <strong>{waitingConvs.length} conversation{waitingConvs.length > 1 ? 's' : ''}</strong> en attente d&apos;intervention humaine (transfert bot)
             </span>
             <Link href="/conversations?status=WAITING"
@@ -382,10 +382,10 @@ export default function Dashboard() {
             {/* Ligne 1 — stats conversations */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Conversations ouvertes', value: stats.conv_open,    icon: '💬', color: 'bg-blue-50 border-blue-200 text-blue-700',   href: '/conversations' },
-                { label: 'En attente',             value: stats.conv_waiting, icon: '⏳', color: 'bg-yellow-50 border-yellow-200 text-yellow-700', href: '/conversations' },
-                { label: 'Fermées',                value: stats.conv_closed,  icon: '✅', color: 'bg-gray-50 border-gray-200 text-gray-600',     href: '/conversations' },
-                { label: 'Clients WhatsApp',       value: stats.customers_total, icon: '👤', color: 'bg-orange-50 border-orange-200 text-orange-700', href: '/customers' },
+                { label: 'Conversations ouvertes', value: stats.conv_open,    icon: '💬', color: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',   href: '/conversations' },
+                { label: 'En attente',             value: stats.conv_waiting, icon: '⏳', color: 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300', href: '/conversations' },
+                { label: 'Fermées',                value: stats.conv_closed,  icon: '✅', color: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300',     href: '/conversations' },
+                { label: 'Clients WhatsApp',       value: stats.customers_total, icon: '👤', color: 'bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300', href: '/customers' },
               ].map(c => (
                 <Link key={c.label} href={c.href} className={`rounded-xl border-2 p-5 hover:shadow-md transition-shadow ${c.color}`}>
                   <div className="flex items-center justify-between mb-2">
@@ -400,10 +400,10 @@ export default function Dashboard() {
             {/* Ligne 2 — stats équipe + accès rapides modules */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Membres équipe',        value: stats.users,         icon: '👥', color: 'bg-purple-50 border-purple-200 text-purple-700', href: '/users' },
-                { label: 'Agents actifs',          value: stats.agents_active, icon: '🟢', color: 'bg-green-50 border-green-200 text-green-700',   href: '/users' },
-                { label: 'Chatbot',                value: undefined,           icon: '🤖', color: 'bg-teal-50 border-teal-200 text-teal-700',      href: '/bot' },
-                { label: 'Base de connaissances',  value: undefined,           icon: '📚', color: 'bg-amber-50 border-amber-200 text-amber-700',   href: '/knowledge' },
+                { label: 'Membres équipe',        value: stats.users,         icon: '👥', color: 'bg-purple-50 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300', href: '/users' },
+                { label: 'Agents actifs',          value: stats.agents_active, icon: '🟢', color: 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300',   href: '/users' },
+                { label: 'Chatbot',                value: undefined,           icon: '🤖', color: 'bg-teal-50 dark:bg-teal-900/30 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300',      href: '/bot' },
+                { label: 'Base de connaissances',  value: undefined,           icon: '📚', color: 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300',   href: '/knowledge' },
               ].map(c => (
                 <Link key={c.label} href={c.href} className={`rounded-xl border-2 p-5 hover:shadow-md transition-shadow ${c.color}`}>
                   <div className="flex items-center justify-between mb-2">
@@ -419,8 +419,8 @@ export default function Dashboard() {
             </div>
 
             {/* Actions rapides */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h2 className="text-base font-semibold text-gray-800 mb-4">⚡ Actions rapides</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+              <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-4">⚡ Actions rapides</h2>
               <div className="flex flex-wrap gap-3">
                 <Link href="/users" className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-medium">
                   + Inviter un agent
@@ -439,28 +439,28 @@ export default function Dashboard() {
 
             {/* ── Section WAITING : transferts bot en attente d'agent ── */}
             {waitingConvs.length > 0 && (
-              <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-5">
+              <div className="bg-amber-50 dark:bg-amber-900/30 border-2 border-amber-300 dark:border-amber-700 rounded-xl p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-base font-semibold text-amber-800">
+                  <h2 className="text-base font-semibold text-amber-800 dark:text-amber-200">
                     🔔 Transferts en attente d&apos;agent ({waitingConvs.length})
                   </h2>
-                  <Link href="/conversations" className="text-xs text-amber-700 hover:underline font-medium">Voir dans conversations →</Link>
+                  <Link href="/conversations" className="text-xs text-amber-700 dark:text-amber-300 hover:underline font-medium">Voir dans conversations →</Link>
                 </div>
                 <div className="space-y-2">
                   {waitingConvs.slice(0, 8).map(c => {
                     const cust = customerMap[c.customer_id];
                     return (
-                      <div key={c.id} className="flex items-center justify-between bg-white rounded-lg px-4 py-2.5 border border-amber-200 gap-3 flex-wrap">
+                      <div key={c.id} className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg px-4 py-2.5 border border-amber-200 dark:border-amber-800 gap-3 flex-wrap">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-xs flex-shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-amber-700 dark:text-amber-300 font-bold text-xs flex-shrink-0">
                             {(cust?.name || cust?.phone_number || '?')[0].toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">{cust?.name || cust?.phone_number || 'Client'}</p>
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{cust?.name || cust?.phone_number || 'Client'}</p>
                             <p className="text-xs text-gray-400">{cust?.phone_number} · {timeAgo(c.last_activity_at)} sans réponse</p>
                           </div>
                           {!c.assigned_agent_id && (
-                            <span className="text-xs bg-red-100 text-red-600 font-medium px-1.5 py-0.5 rounded-full flex-shrink-0">Non assignée</span>
+                            <span className="text-xs bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 font-medium px-1.5 py-0.5 rounded-full flex-shrink-0">Non assignée</span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -483,7 +483,7 @@ export default function Dashboard() {
                           <select
                             value={selectAgent[c.id] || ''}
                             onChange={e => setSelectAgent(prev => ({ ...prev, [c.id]: e.target.value }))}
-                            className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-amber-400 bg-white">
+                            className="text-xs border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-amber-400 bg-white dark:bg-gray-800">
                             <option value="">Assigner à…</option>
                             {agents.map(a => (
                               <option key={a.id} value={a.id}>{a.first_name} {a.last_name}</option>
@@ -518,27 +518,27 @@ export default function Dashboard() {
             {/* Activité récente : conversations + clients */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Conversations actives récentes */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-base font-semibold text-gray-800">💬 Conversations actives</h2>
-                  <Link href="/conversations" className="text-xs text-blue-600 hover:underline">Voir tout</Link>
+                  <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">💬 Conversations actives</h2>
+                  <Link href="/conversations" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">Voir tout</Link>
                 </div>
                 <div className="space-y-3">
                   {recentConvs.length === 0 ? (
                     <p className="text-sm text-gray-400 text-center py-4">Aucune conversation active</p>
                   ) : recentConvs.map(c => (
                     <Link key={c.id} href="/conversations"
-                      className="flex items-center justify-between hover:bg-gray-50 rounded-lg px-2 py-1 -mx-2 transition-colors">
+                      className="flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg px-2 py-1 -mx-2 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xs font-bold">
                           💬
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900">Client #{c.customer_id.slice(0, 8)}</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">Client #{c.customer_id.slice(0, 8)}</p>
                           <p className="text-xs text-gray-400">{timeAgo(c.last_activity_at)} · {c.priority}</p>
                         </div>
                       </div>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-600'}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[c.status] || 'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300'}`}>
                         {c.status}
                       </span>
                     </Link>
@@ -547,21 +547,21 @@ export default function Dashboard() {
               </div>
 
               {/* Derniers clients */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-base font-semibold text-gray-800">👤 Nouveaux clients</h2>
-                  <Link href="/customers" className="text-xs text-orange-600 hover:underline">Voir tout</Link>
+                  <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">👤 Nouveaux clients</h2>
+                  <Link href="/customers" className="text-xs text-orange-600 dark:text-orange-400 hover:underline">Voir tout</Link>
                 </div>
                 <div className="space-y-3">
                   {recentCustomers.length === 0 ? (
                     <p className="text-sm text-gray-400 text-center py-4">Aucun client</p>
                   ) : recentCustomers.map(c => (
                     <div key={c.id} className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm">
+                      <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold text-sm">
                         {(c.name || c.phone_number)[0].toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{c.name || 'Sans nom'}</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{c.name || 'Sans nom'}</p>
                         <p className="text-xs text-gray-400">{c.phone_number}</p>
                       </div>
                       <span className="text-xs text-gray-400">{timeAgo(c.created_at)}</span>

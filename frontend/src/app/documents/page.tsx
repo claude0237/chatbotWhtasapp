@@ -135,28 +135,28 @@ export default function DocumentsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-800">
         <div>Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-800 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Documents</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Documents</h1>
 
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          <div className="bg-red-100 dark:bg-red-900/40 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 px-4 py-3 rounded mb-4">
             {error}
           </div>
         )}
 
         {/* Upload Section */}
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Upload Document</h2>
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Upload Document</h2>
           
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+          <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
             <input
               type="file"
               id="file-upload"
@@ -171,18 +171,18 @@ export default function DocumentsPage() {
             >
               {uploading ? 'Uploading...' : 'Choose File'}
             </label>
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
               Supported formats: PDF, Word, Excel, Markdown, TXT, HTML
             </p>
           </div>
 
           {uploading && (
             <div className="mt-4">
-              <div className="flex justify-between text-sm text-gray-600 mb-1">
+              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300 mb-1">
                 <span>Uploading...</span>
                 <span>{uploadProgress}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <div
                   className="bg-blue-600 h-2 rounded-full transition-all"
                   style={{ width: `${uploadProgress}%` }}
@@ -193,8 +193,8 @@ export default function DocumentsPage() {
         </div>
 
         {/* Ingestion Actions */}
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Ingestion Actions</h2>
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Ingestion Actions</h2>
           <div className="flex gap-4">
             <button
               onClick={handleIngestFromDatabase}
@@ -212,19 +212,19 @@ export default function DocumentsPage() {
         </div>
 
         {/* Documents List */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Documents</h2>
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Documents</h2>
           
           <div className="space-y-4">
             {documents.map((document) => (
-              <div key={document.id} className="border border-gray-200 rounded-lg p-4">
+              <div key={document.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-900">{document.file_name}</div>
-                    <div className="text-xs text-gray-500 mt-1">
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">{document.file_name}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Type: {document.file_type} • Size: {document.file_size ? `${(document.file_size / 1024).toFixed(2)} KB` : 'Unknown'}
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Status: {document.status} • Chunks: {document.chunk_count}
                     </div>
                     {document.processed_at && (
@@ -235,7 +235,7 @@ export default function DocumentsPage() {
                   </div>
                   <button
                     onClick={() => handleDeleteDocument(document.id)}
-                    className="text-red-600 hover:text-red-700 text-sm"
+                    className="text-red-600 dark:text-red-400 hover:text-red-700 text-sm"
                   >
                     Delete
                   </button>
@@ -243,7 +243,7 @@ export default function DocumentsPage() {
               </div>
             ))}
             {documents.length === 0 && (
-              <div className="text-center text-gray-500 py-8">
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
                 No documents uploaded yet
               </div>
             )}
@@ -252,34 +252,34 @@ export default function DocumentsPage() {
 
         {/* Ingestion Jobs */}
         {jobs.length > 0 && (
-          <div className="bg-white shadow rounded-lg p-6 mt-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Ingestion Jobs</h2>
+          <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mt-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Ingestion Jobs</h2>
             
             <div className="space-y-4">
               {jobs.map((job) => (
-                <div key={job.id} className="border border-gray-200 rounded-lg p-4">
+                <div key={job.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-900">{job.source_type}</div>
-                      <div className="text-xs text-gray-500 mt-1">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">{job.source_type}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Status: {job.status} • Progress: {job.processed_documents}/{job.total_documents}
                       </div>
                       {job.failed_documents > 0 && (
-                        <div className="text-xs text-red-500 mt-1">
+                        <div className="text-xs text-red-500 dark:text-red-300 mt-1">
                           Failed: {job.failed_documents}
                         </div>
                       )}
                       {job.error_message && (
-                        <div className="text-xs text-red-500 mt-1">
+                        <div className="text-xs text-red-500 dark:text-red-300 mt-1">
                           Error: {job.error_message}
                         </div>
                       )}
                     </div>
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      job.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                      job.status === 'RUNNING' ? 'bg-blue-100 text-blue-800' :
-                      job.status === 'FAILED' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
+                      job.status === 'COMPLETED' ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200' :
+                      job.status === 'RUNNING' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200' :
+                      job.status === 'FAILED' ? 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200' :
+                      'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100'
                     }`}>
                       {job.status}
                     </span>
