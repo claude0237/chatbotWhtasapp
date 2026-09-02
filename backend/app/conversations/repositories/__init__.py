@@ -324,6 +324,22 @@ class MessageRepository:
             .limit(limit)
         )
         return result.scalars().all()
+
+    async def get_last_customer_message(self, conversation_id: UUID) -> Optional[Message]:
+        """Get the most recent message from the customer in a conversation"""
+        from app.conversations.models import SenderType
+        result = await self.db.execute(
+            select(Message)
+            .where(
+                and_(
+                    Message.conversation_id == conversation_id,
+                    Message.sender_type == SenderType.CUSTOMER
+                )
+            )
+            .order_by(Message.sent_at.desc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
     
     async def get_by_external_id(self, external_message_id: str) -> Optional[Message]:
         """Get message by external message ID (e.g., WhatsApp message ID)"""

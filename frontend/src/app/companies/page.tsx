@@ -83,7 +83,7 @@ export default function CompaniesPage() {
 
   const handleToggle = async (c: Company) => {
     try {
-      await api.put(`/companies/${c.id}`, { is_active: !c.is_active });
+      await api.put(`/companies/${c.id}`, { is_active: !c.is_active, is_suspended: c.is_active });
       fetchCompanies();
     } catch (err: any) {
       const errorDetail = err.response?.data?.detail;

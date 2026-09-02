@@ -19,7 +19,7 @@ from app.bot.engine import BotEngine, HANDOFF_PREFIX, INTERACTIVE_PREFIX
 from app.bot.repositories import BotConversationStateRepository
 from app.conversations.repositories import CustomerRepository, ConversationRepository, MessageRepository
 from app.conversations.models import Conversation, Message, ConversationStatus, SenderType, ConversationMessageType, ConversationMessageStatus
-from app.logging_config import log_whatsapp, log_with_context
+from app.logging_config import log_whatsapp, log_with_context, log_trace
 
 
 class WhatsAppService:
@@ -696,6 +696,17 @@ class WhatsAppService:
                             sent_at=datetime.utcfromtimestamp(int(msg.get("timestamp", 0))),
                         )
                         await message_repo.create(conv_message)
+
+                        log_trace(
+                            "WHATSAPP_CONVERSATION_MESSAGE_CREATED",
+                            company_id=str(company_id),
+                            phone_number=phone_from,
+                            conversation_id=str(conversation.id),
+                            message_id=msg.get("id"),
+                            status=conversation.status.value,
+                            is_new_conversation=is_new_conversation,
+                            human_in_control=human_in_control,
+                        )
 
                         # ── Send welcome message on new/re-opened conversation ──
                         # If outside business hours, send away_message instead

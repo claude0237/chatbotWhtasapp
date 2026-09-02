@@ -7,6 +7,19 @@ from typing import Optional
 import json
 from datetime import datetime
 
+# Define a custom TRACE level (more granular than DEBUG)
+TRACE = 5
+logging.addLevelName(TRACE, "TRACE")
+
+
+def trace(self, message, *args, **kwargs):
+    """Custom trace method for loggers."""
+    if self.isEnabledFor(TRACE):
+        self._log(TRACE, message, args, **kwargs)
+
+
+logging.Logger.trace = trace
+
 # Get log directory from environment or use default
 LOG_DIR = Path(os.getenv("LOG_DIR", "logs"))
 LOG_DIR.mkdir(exist_ok=True)
@@ -159,7 +172,22 @@ def setup_logging(log_level: str = "WARNING"):
     bot_logger.addHandler(bot_handler)
     bot_logger.setLevel(logging.WARNING)
     bot_logger.propagate = False
-    
+
+    # 7. Trace log (detailed audit/trace for bot/conversation flows)
+    trace_handler = logging.handlers.TimedRotatingFileHandler(
+        LOG_DIR / "trace.log",
+        when="midnight",
+        interval=1,
+        backupCount=30,
+        encoding="utf-8"
+    )
+    trace_handler.setLevel(TRACE)
+    trace_handler.setFormatter(json_formatter)
+    trace_logger = logging.getLogger("trace")
+    trace_logger.addHandler(trace_handler)
+    trace_logger.setLevel(TRACE)
+    trace_logger.propagate = False
+
     # Console handler (for development)
     console_handler = logging.StreamHandler()
     console_handler.setLevel(level)
@@ -250,3 +278,9 @@ def log_bot(logger: logging.Logger, level: int, message: str, **context):
     """Log bot event"""
     bot_logger = logging.getLogger("bot")
     log_with_context(bot_logger, level, message, **context)
+
+
+def log_trace(message: str, **context):
+    """Log a detailed trace/audit event for bot/conversation flows"""
+    trace_logger = logging.getLogger("trace")
+    log_with_context(trace_logger, TRACE, message, **context)

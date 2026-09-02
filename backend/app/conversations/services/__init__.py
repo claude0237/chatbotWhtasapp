@@ -1,4 +1,5 @@
 """Conversation Service"""
+from datetime import datetime
 from typing import Optional, List
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,6 +8,7 @@ from app.conversations.models import Conversation, Message, ConversationStatus, 
 from app.customers.models import Customer
 from app.conversations.repositories import CustomerRepository, ConversationRepository, MessageRepository
 from app.bot.services import NativeBotEngine
+from app.logging_config import log_trace
 
 
 class CustomerService:
@@ -62,7 +64,15 @@ class ConversationService:
             status=status,
             priority=priority
         )
-        return await self.repository.create(conversation)
+        created = await self.repository.create(conversation)
+        log_trace(
+            "CONVERSATION_CREATED",
+            conversation_id=str(created.id),
+            company_id=str(company_id),
+            customer_id=str(customer_id),
+            status=created.status.value,
+        )
+        return created
     
     async def assign_to_agent(self, conversation_id: UUID, agent_id: UUID) -> Optional[Conversation]:
         """Assign conversation to an agent"""
@@ -185,7 +195,16 @@ class MessageService:
             external_message_id=external_message_id,
             status=ConversationMessageStatus.SENT
         )
-        return await self.repository.create(message)
+        created = await self.repository.create(message)
+        log_trace(
+            "MESSAGE_SENT",
+            conversation_id=str(conversation_id),
+            sender_type=sender_type.value if sender_type else None,
+            sender_id=str(sender_id) if sender_id else None,
+            message_type=message_type.value if message_type else None,
+            message_id=str(created.id),
+        )
+        return created
     
     async def receive_message(
         self,
@@ -209,11 +228,20 @@ class MessageService:
             status=ConversationMessageStatus.DELIVERED
         )
         created_message = await self.repository.create(message)
-        
+
+        log_trace(
+            "MESSAGE_RECEIVED",
+            conversation_id=str(conversation_id),
+            sender_type=sender_type.value if sender_type else None,
+            sender_id=str(sender_id) if sender_id else None,
+            message_type=message_type.value if message_type else None,
+            message_id=str(created_message.id),
+        )
+
         # If message is from customer, trigger bot response
         if sender_type == SenderType.CUSTOMER and content:
             await self._trigger_bot_response(conversation_id, content)
-        
+
         return created_message
     
     async def _trigger_bot_response(self, conversation_id: UUID, customer_message: str):
@@ -256,6 +284,12 @@ class MessageService:
         
         # Send bot response
         if bot_response:
+            log_trace(
+                "BOT_RESPONSE_TRIGGERED",
+                conversation_id=str(conversation_id),
+                company_id=str(conversation.company_id),
+                response_preview=bot_response[:80] if bot_response else None,
+            )
             await self.send_message(
                 conversation_id=conversation_id,
                 sender_type=SenderType.BOT,
@@ -263,10 +297,17 @@ class MessageService:
                 content=bot_response,
                 message_type=ConversationMessageType.TEXT
             )
-            
+
             # Update conversation status to AI if it was OPEN
             if conversation.status == ConversationStatus.OPEN:
                 await ConversationRepository(self.db).change_status(conversation_id, ConversationStatus.AI)
+                log_trace(
+                    "CONVERSATION_STATUS_CHANGED",
+                    conversation_id=str(conversation_id),
+                    from_status=ConversationStatus.OPEN.value,
+                    to_status=ConversationStatus.AI.value,
+                    reason="bot_response",
+                )
     
     async def transfer_to_agent(self, conversation_id: UUID, agent_id: UUID) -> Optional[Conversation]:
         """Transfer conversation from bot to agent"""
@@ -301,3 +342,13 @@ class MessageService:
     async def delete_message(self, message_id: UUID) -> bool:
         """Delete a single message"""
         return await self.repository.delete(message_id)
+
+    async def get_last_customer_message(self, conversation_id: UUID) -> Optional[Message]:
+        """Get the most recent message sent by the customer"""
+        return await self.repository.get_last_customer_message(conversation_id)
+
+    def is_within_whatsapp_window(self, customer_message_sent_at: Optional[datetime] = None) -> bool:
+        """Check if the conversation is still within Meta's 24-hour free-form messaging window"""
+        if not customer_message_sent_at:
+            return False
+        return (datetime.utcnow() - customer_message_sent_at).total_seconds() < 24 * 60 * 60

@@ -37,6 +37,7 @@ from app.conversations.models import ConversationStatus
 from app.conversations.repositories import ConversationRepository
 from app.customers.repositories import CustomerRepository
 from app.config import settings
+from app.logging_config import log_trace
 
 
 class BotEngine:
@@ -94,13 +95,34 @@ class BotEngine:
 
         normalized = message_text.strip().upper()
 
+        log_trace(
+            "BOT_ENGINE_PROCESS_START",
+            company_id=str(company_id),
+            phone_number=phone_number,
+            message_text=message_text[:100],
+            bot_type=config.bot_type.value,
+        )
+
         # ── 1. Active scenario mid-flight? (only in NATIVE mode) ────────────────
         if config.bot_type == BotType.NATIVE:
             state = await self.state_repo.get_active(company_id, phone_number)
             if state:
+                log_trace(
+                    "BOT_ENGINE_ACTIVE_SCENARIO",
+                    company_id=str(company_id),
+                    phone_number=phone_number,
+                    scenario_id=str(state.scenario_id),
+                    current_step=state.current_step,
+                )
                 scenario_result = await self._advance_scenario(state, normalized, message_text, config.unknown_message)
                 # If scenario finished without message, continue with normal processing
                 if scenario_result is not None:
+                    log_trace(
+                        "BOT_ENGINE_SCENARIO_RESULT",
+                        company_id=str(company_id),
+                        phone_number=phone_number,
+                        response_preview=scenario_result[:80] if scenario_result else None,
+                    )
                     return scenario_result
                 # Fall through to keyword/ML matching below
 
@@ -366,11 +388,19 @@ class BotEngine:
         if conditional_reply is not None:
             # The step produced an inline reply for invalid input → stay on same step
             state.retry_count += 1
-            
+
             # Check if max retries exceeded
             config = await self.config_repo.get_by_company_id(state.company_id)
             if config and state.retry_count >= config.followup_max_retries:
                 # Max retries reached - close conversation
+                log_trace(
+                    "BOT_SCENARIO_MAX_RETRIES_REACHED",
+                    company_id=str(state.company_id),
+                    phone_number=state.phone_number,
+                    scenario_id=str(state.scenario_id),
+                    retry_count=state.retry_count,
+                    max_retries=config.followup_max_retries,
+                )
                 await self._close_conversation(state.company_id, state.phone_number, config.closing_message)
                 await self.state_repo.delete(state)
                 return self._interpolate(config.closing_message or "Conversation terminée suite à trop de tentatives.", {})
@@ -686,17 +716,32 @@ class BotEngine:
     async def _close_conversation(self, company_id: UUID, phone_number: str, closing_message: Optional[str] = None) -> None:
         """Close the conversation for a phone number."""
         from datetime import datetime
-        
+
         # Get customer
         customer = await self.customer_repo.get_by_phone_number(company_id, phone_number)
         if not customer:
+            log_trace(
+                "BOT_CLOSE_CONVERSATION_NO_CUSTOMER",
+                company_id=str(company_id),
+                phone_number=phone_number,
+            )
             return
-        
+
         # Get active conversation
         conversation = await self.conversation_repo.get_active_by_customer(company_id, customer.id)
         if conversation:
+            previous_status = conversation.status.value
             conversation.status = ConversationStatus.CLOSED
             conversation.closed_at = datetime.utcnow()
             conversation.last_activity_at = datetime.utcnow()
             await self.db.commit()
             await self.db.refresh(conversation)
+            log_trace(
+                "BOT_CLOSE_CONVERSATION",
+                company_id=str(company_id),
+                phone_number=phone_number,
+                conversation_id=str(conversation.id),
+                previous_status=previous_status,
+                new_status=ConversationStatus.CLOSED.value,
+                closing_message_sent=bool(closing_message),
+            )

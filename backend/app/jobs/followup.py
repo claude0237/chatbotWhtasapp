@@ -12,7 +12,7 @@ from app.bot.models import BotConversationState, BotConfiguration
 from app.bot.repositories import BotConversationStateRepository, BotConfigurationRepository
 from app.conversations.models import Conversation, ConversationStatus
 from app.whatsapp.services import WhatsAppService
-from app.logging_config import log_with_context
+from app.logging_config import log_with_context, log_trace
 
 logger = logging.getLogger("app.jobs")
 
@@ -27,6 +27,11 @@ async def _process_stale_states(db: AsyncSession) -> None:
         select(BotConversationState).options(selectinload(BotConversationState.scenario))
     )
     states: list[BotConversationState] = list(result.scalars().all())
+
+    log_trace(
+        "FOLLOWUP_JOB_SCAN_STARTED",
+        state_count=len(states)
+    )
 
     if not states:
         return
@@ -53,6 +58,16 @@ async def _process_stale_states(db: AsyncSession) -> None:
         last_activity = state.updated_at or state.created_at
         idle_minutes = (now - last_activity).total_seconds() / 60
 
+        log_trace(
+            "FOLLOWUP_JOB_STATE_EVAL",
+            phone_number=state.phone_number,
+            company_id=str(company_id),
+            retry_count=state.retry_count,
+            max_retries=max_retries,
+            idle_minutes=round(idle_minutes, 2),
+            timeout_minutes=timeout_minutes,
+        )
+
         if idle_minutes < timeout_minutes:
             continue  # Still within timeout window
 
@@ -61,14 +76,18 @@ async def _process_stale_states(db: AsyncSession) -> None:
             log_with_context(
                 logger,
                 logging.INFO,
-                "CELERY_JOB_MAX_RETRIES_REACHED",
+                "FOLLOWUP_MAX_RETRIES_REACHED",
                 phone_number=state.phone_number,
                 retry_count=state.retry_count,
                 company_id=str(company_id)
             )
-            logger.info(
-                f"[followup] Closing conversation for {state.phone_number} "
-                f"after {state.retry_count} retries without response."
+            log_trace(
+                "FOLLOWUP_CLOSE_TRIGGERED",
+                phone_number=state.phone_number,
+                company_id=str(company_id),
+                retry_count=state.retry_count,
+                max_retries=max_retries,
+                reason="no_customer_response_after_max_retries",
             )
             # Find the conversation via the customer phone number
             from app.customers.models import Customer
@@ -81,6 +100,7 @@ async def _process_stale_states(db: AsyncSession) -> None:
                 )
             )
             customer = cust_result.scalar_one_or_none()
+            closed_conversation_id = None
             if customer:
                 conv_result2 = await db.execute(
                     select(Conversation).where(
@@ -97,11 +117,44 @@ async def _process_stale_states(db: AsyncSession) -> None:
                 )
                 conv = conv_result2.scalar_one_or_none()
                 if conv:
+                    # Optionally send closing message before closing
+                    closing = config.closing_message or "Merci pour votre temps. La conversation est clôturée."
+                    if closing:
+                        try:
+                            wa_service = WhatsAppService(db)
+                            await wa_service.send_text_message(
+                                company_id=company_id,
+                                phone_number=state.phone_number,
+                                content=closing,
+                            )
+                            log_trace(
+                                "FOLLOWUP_CLOSING_MESSAGE_SENT",
+                                phone_number=state.phone_number,
+                                company_id=str(company_id),
+                                conversation_id=str(conv.id),
+                            )
+                        except Exception as exc:
+                            log_trace(
+                                "FOLLOWUP_CLOSING_MESSAGE_FAILED",
+                                phone_number=state.phone_number,
+                                company_id=str(company_id),
+                                conversation_id=str(conv.id),
+                                error=str(exc),
+                            )
+
                     conv.status = ConversationStatus.CLOSED
                     conv.closed_at = now
                     conv.updated_at = now
                     await db.commit()
+                    closed_conversation_id = str(conv.id)
                     logger.info(f"[followup] Conversation {conv.id} closed.")
+                    log_trace(
+                        "FOLLOWUP_CONVERSATION_CLOSED",
+                        phone_number=state.phone_number,
+                        company_id=str(company_id),
+                        conversation_id=closed_conversation_id,
+                        retry_count=state.retry_count,
+                    )
 
             # Delete the bot state
             state_repo = BotConversationStateRepository(db)
@@ -120,15 +173,19 @@ async def _process_stale_states(db: AsyncSession) -> None:
         log_with_context(
             logger,
             logging.INFO,
-            "CELERY_JOB_STARTED",
+            "FOLLOWUP_SENDING_RETRY",
             phone_number=state.phone_number,
             retry_count=state.retry_count + 1,
             max_retries=max_retries,
             company_id=str(company_id)
         )
-        logger.info(
-            f"[followup] Sending retry {state.retry_count + 1}/{max_retries} "
-            f"to {state.phone_number}"
+        log_trace(
+            "FOLLOWUP_SENDING",
+            phone_number=state.phone_number,
+            company_id=str(company_id),
+            retry=state.retry_count + 1,
+            max_retries=max_retries,
+            message_preview=last_message[:80] if last_message else None,
         )
         try:
             wa_service = WhatsAppService(db)
@@ -140,25 +197,41 @@ async def _process_stale_states(db: AsyncSession) -> None:
             log_with_context(
                 logger,
                 logging.INFO,
-                "CELERY_JOB_SUCCESS",
+                "FOLLOWUP_SENT",
                 phone_number=state.phone_number,
                 company_id=str(company_id)
+            )
+            log_trace(
+                "FOLLOWUP_SENT_SUCCESS",
+                phone_number=state.phone_number,
+                company_id=str(company_id),
+                retry=state.retry_count + 1,
+                max_retries=max_retries,
             )
         except Exception as exc:
             log_with_context(
                 logger,
                 logging.ERROR,
-                "CELERY_JOB_FAILED",
+                "FOLLOWUP_SEND_FAILED",
                 phone_number=state.phone_number,
                 company_id=str(company_id),
                 error_message=str(exc),
                 exc_info=True
+            )
+            log_trace(
+                "FOLLOWUP_SEND_ERROR",
+                phone_number=state.phone_number,
+                company_id=str(company_id),
+                retry=state.retry_count + 1,
+                error=str(exc),
             )
             logger.warning(f"[followup] Failed to send follow-up to {state.phone_number}: {exc}")
 
         state.retry_count = (state.retry_count or 0) + 1
         state.updated_at = now
         await db.commit()
+
+    log_trace("FOLLOWUP_JOB_SCAN_FINISHED")
 
 
 async def run_followup_job() -> None:

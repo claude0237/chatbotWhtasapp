@@ -516,6 +516,16 @@ async def send_message(
     if not conversation or str(conversation.company_id) != company_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
 
+    # Enforce Meta's 24-hour free-form messaging window
+    last_customer_message = await message_service.get_last_customer_message(UUID(conversation_id))
+    if not message_service.is_within_whatsapp_window(last_customer_message.sent_at if last_customer_message else None):
+        # Window expired: close the conversation so it can no longer receive agent messages
+        await conv_service.change_status(conversation_id, ConversationStatus.CLOSED)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La fenêtre de réponse WhatsApp de 24h est expirée. Conversation clôturée. Vous ne pouvez plus envoyer de message ici."
+        )
+
     message = await message_service.send_message(
         conversation_id=UUID(conversation_id),
         sender_type=SenderType.AGENT,

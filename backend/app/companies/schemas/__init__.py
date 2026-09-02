@@ -60,6 +60,7 @@ class CompanyUpdate(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
     is_active: Optional[bool] = None
+    is_suspended: Optional[bool] = None
     ml_enabled: Optional[bool] = None
     subscription_plan: Optional[str] = None
     

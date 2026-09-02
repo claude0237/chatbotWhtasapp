@@ -55,9 +55,10 @@ export default function ConversationsPage() {
   const [modalStatus,  setModalStatus]  = useState('');
   const [modalAgentId, setModalAgentId] = useState('');
   const [modalTag,     setModalTag]     = useState('');
-  const messagesEndRef   = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef         = useRef<HTMLInputElement>(null);
   const prevSelectedId   = useRef<string | null>(null);
+  const isAtBottomRef    = useRef(true);
   const pollConvRef       = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchAgents = useCallback(async () => {
@@ -147,17 +148,41 @@ export default function ConversationsPage() {
     return () => clearInterval(iv);
   }, [selected]);
 
+  // Reset bottom tracking each time the conversation changes
   useEffect(() => {
-    if (!messagesEndRef.current) return;
+    isAtBottomRef.current = true;
+  }, [selected?.id]);
+
+  useEffect(() => {
+    if (!messagesContainerRef.current) return;
     const isNewConv = prevSelectedId.current !== selected?.id;
     prevSelectedId.current = selected?.id ?? null;
-    messagesEndRef.current.scrollIntoView({ behavior: isNewConv ? 'instant' : 'smooth' });
+    // Only auto-scroll on new conversation or if user is already near the bottom
+    if (isNewConv || isAtBottomRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: isNewConv ? 'instant' : 'smooth',
+      });
+    }
   }, [messages]);
+
+  const lastCustomerMessage = React.useMemo(() => {
+    return [...messages]
+      .sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime())
+      .find(m => m.sender_type === 'CUSTOMER');
+  }, [messages]);
+
+  const isWindowOpen = React.useMemo(() => {
+    if (!lastCustomerMessage) return false;
+    return Date.now() - new Date(lastCustomerMessage.sent_at).getTime() < 24 * 60 * 60 * 1000;
+  }, [lastCustomerMessage]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selected || !newMessage.trim()) return;
+    if (!selected || !newMessage.trim() || !isWindowOpen) return;
     setSending(true);
+    // Force scroll to bottom so the sent message becomes visible
+    isAtBottomRef.current = true;
     try {
       await api.post(`/conversations/conversations/${selected.id}/messages`, { content: newMessage.trim(), message_type: 'TEXT' });
       setNewMessage('');
@@ -324,7 +349,7 @@ export default function ConversationsPage() {
                 const isUnassigned = !c.assigned_agent_id;
                 return (
                   <div key={c.id} onClick={() => setSelected(c)}
-                    className={`px-3 py-3 cursor-pointer hover:bg-gray-50 transition-colors relative ${
+                    className={`px-3 py-3 cursor-pointer hover:bg-gray-50:bg-gray-700 transition-colors relative ${
                       isSelected ? 'bg-green-50 border-l-4 border-green-500' :
                       c.status === 'WAITING' ? 'border-l-4 border-amber-400 bg-amber-50/40' :
                       'border-l-4 border-transparent'
@@ -405,7 +430,7 @@ export default function ConversationsPage() {
                   </div>
 
                   {/* Messages */}
-                  <div className="flex-1 overflow-y-auto p-4 bg-[#efeae2]" style={{backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23d4cfc8\' fill-opacity=\'0.3\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")'}}>
+                  <div ref={messagesContainerRef} onScroll={(e) => { const el = e.currentTarget; isAtBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }} className="flex-1 overflow-y-auto p-4 bg-[#efeae2]" style={{backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23d4cfc8\' fill-opacity=\'0.3\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")'}}>
                     {messages.length === 0 ? (
                       <div className="flex items-center justify-center h-full text-gray-500 text-sm">Aucun message</div>
                     ) : (() => {
@@ -485,11 +510,14 @@ export default function ConversationsPage() {
                       });
                       return items;
                     })()}
-                    <div ref={messagesEndRef} />
                   </div>
 
                   {/* Input */}
-                  {isLocked && canWrite ? (
+                  {!isWindowOpen ? (
+                    <div className="border-t p-3 bg-red-50 text-center text-sm text-red-600">
+                      ⛔ Fenêtre WhatsApp de 24h expirée — impossible d&apos;envoyer un message ici. Utilisez un template WhatsApp approuvé.
+                    </div>
+                  ) : isLocked && canWrite ? (
                     <div className="border-t p-3 bg-amber-50 flex items-center gap-3">
                       <span className="text-sm text-amber-700 flex-1">
                         {selected.status === 'AI'
@@ -604,7 +632,7 @@ export default function ConversationsPage() {
               ))}
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setShowStatusModal(false)} className="flex-1 border border-gray-300 py-2 rounded-lg text-sm hover:bg-gray-50">Annuler</button>
+              <button onClick={() => setShowStatusModal(false)} className="flex-1 border border-gray-300 py-2 rounded-lg text-sm hover:bg-gray-50:bg-gray-700">Annuler</button>
               <button onClick={handleChangeStatus} className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700">Appliquer</button>
             </div>
           </div>
@@ -624,7 +652,7 @@ export default function ConversationsPage() {
               ))}
             </select>
             <div className="flex gap-2">
-              <button onClick={() => setShowAssignModal(false)} className="flex-1 border border-gray-300 py-2 rounded-lg text-sm hover:bg-gray-50">Annuler</button>
+              <button onClick={() => setShowAssignModal(false)} className="flex-1 border border-gray-300 py-2 rounded-lg text-sm hover:bg-gray-50:bg-gray-700">Annuler</button>
               <button onClick={handleAssign} disabled={!modalAgentId} className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700 disabled:opacity-50">Assigner</button>
             </div>
           </div>
@@ -642,7 +670,7 @@ export default function ConversationsPage() {
               onKeyDown={e => e.key === 'Enter' && handleAddTag()}
             />
             <div className="flex gap-2">
-              <button onClick={() => setShowTagModal(false)} className="flex-1 border border-gray-300 py-2 rounded-lg text-sm hover:bg-gray-50">Annuler</button>
+              <button onClick={() => setShowTagModal(false)} className="flex-1 border border-gray-300 py-2 rounded-lg text-sm hover:bg-gray-50:bg-gray-700">Annuler</button>
               <button onClick={handleAddTag} className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700">Ajouter</button>
             </div>
           </div>
